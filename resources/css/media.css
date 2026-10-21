@@ -1,0 +1,442 @@
+/*
+ * Media library and asset detail (bn-media__*).
+ *
+ * packages/filament-media-library/resources/views/library.blade.php
+ * packages/filament-media-library/resources/views/asset.blade.php
+ *
+ * Hand-authored against the --bn-* tokens, registered as a Filament asset from
+ * this package's own service provider. There is no Node toolchain in this
+ * repository on purpose: a Tailwind utility class here would not exist in
+ * Filament's compiled CSS and would render as nothing at all. Shared primitives
+ * (.bn-meta / .bn-empty / .bn-chip) are owned by the admin and theme packages —
+ * used here, never restated.
+ */
+
+.bn-media__intro {
+    color: var(--bn-text-muted);
+    font-size: var(--bn-text-base);
+    line-height: var(--bn-text-base-height);
+    margin-bottom: var(--bn-space-4);
+}
+
+.bn-media__expiry-alert {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--bn-space-4);
+    margin-bottom: var(--bn-space-4);
+    padding: var(--bn-space-3) var(--bn-space-4);
+    color: var(--bn-text);
+    border: 1px solid color-mix(in oklab, var(--bn-warning) 40%, var(--bn-border));
+    border-radius: var(--bn-radius-card);
+    background: color-mix(in oklab, var(--bn-warning) 7%, var(--bn-surface));
+}
+
+.bn-media__expiry-copy {
+    min-width: 0;
+}
+
+.bn-media__expiry-title {
+    display: flex;
+    align-items: center;
+    gap: var(--bn-space-2);
+}
+
+.bn-media__expiry-copy p {
+    margin: var(--bn-space-1) 0 0;
+    color: var(--bn-text);
+}
+
+.bn-media__expiry-critical {
+    color: var(--bn-state-expired) !important;
+    font-weight: 600;
+}
+
+.bn-media__expiry-actions {
+    display: flex;
+    flex-wrap: wrap;
+    flex: none;
+    gap: var(--bn-space-2);
+}
+
+@media (max-width: 640px) {
+    .bn-media__expiry-alert {
+        flex-direction: column;
+    }
+}
+
+/* ── Filters ─────────────────────────────────────────────────────────────── */
+
+.bn-media__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--bn-space-4);
+    padding-bottom: var(--bn-space-4);
+    border-bottom: 1px solid var(--bn-border-subtle);
+}
+
+.bn-media__filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--bn-space-1);
+    min-width: 180px;
+}
+
+.bn-media__filter--check {
+    min-height: 2.25rem;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--bn-space-2);
+    min-width: 0;
+    font-size: var(--bn-text-base);
+    color: var(--bn-text);
+}
+
+.bn-media__filter-label {
+    font-size: var(--bn-text-sm);
+    line-height: var(--bn-text-sm-height);
+    color: var(--bn-text-muted);
+}
+
+.bn-media__input {
+    height: var(--bn-control-height);
+    padding: 0 var(--bn-space-2);
+    font-size: var(--bn-text-base);
+    color: var(--bn-text);
+    background-color: var(--bn-surface);
+    border: 1px solid var(--bn-border-strong);
+    border-radius: var(--bn-radius-input);
+}
+
+.bn-media__input:focus-visible {
+    outline: 2px solid var(--bn-focus-ring);
+    outline-offset: 1px;
+}
+
+.bn-media__count {
+    margin: var(--bn-space-4) 0 var(--bn-space-2);
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+
+.bn-media__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--bn-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bn-media__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bn-surface);
+    border: 1px solid var(--bn-border);
+    border-radius: var(--bn-radius-card);
+    box-shadow: var(--bn-elevation-card);
+    overflow: hidden;
+}
+
+.bn-media__thumb-link {
+    display: block;
+    background-color: var(--bn-surface-2);
+}
+
+.bn-media__thumb-link:focus-visible {
+    outline: 2px solid var(--bn-focus-ring);
+    outline-offset: -2px;
+}
+
+.bn-media__thumb {
+    display: block;
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+}
+
+.bn-media__card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--bn-space-1);
+    padding: var(--bn-space-3);
+}
+
+.bn-media__filename {
+    font-size: var(--bn-text-base);
+    line-height: var(--bn-text-base-height);
+    color: var(--bn-text);
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.bn-media__filename:hover {
+    text-decoration: underline;
+}
+
+.bn-media__dims {
+    font-size: var(--bn-text-sm);
+}
+
+.bn-media__flags,
+.bn-media__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--bn-space-1);
+    align-items: center;
+}
+
+/* An asset with no alt text is a defect, not a detail. */
+.bn-media__flag--warn {
+    color: var(--bn-warning);
+    border-color: color-mix(in oklab, var(--bn-warning) 40%, var(--bn-border));
+    background-color: color-mix(in oklab, var(--bn-warning) 8%, var(--bn-surface));
+}
+
+.bn-media__flag--ok {
+    color: var(--bn-success);
+    font-size: var(--bn-text-sm);
+}
+
+.bn-media__flag--expired {
+    color: var(--bn-state-expired);
+    border-color: color-mix(in oklab, var(--bn-state-expired) 40%, var(--bn-border));
+    background-color: color-mix(in oklab, var(--bn-state-expired) 8%, var(--bn-surface));
+}
+
+.bn-media__card-actions {
+    position: absolute;
+    top: var(--bn-space-1);
+    inset-inline-end: var(--bn-space-1);
+    background-color: color-mix(in oklab, var(--bn-surface) 80%, transparent);
+    border-radius: var(--bn-radius-input);
+}
+
+.bn-media__protected {
+    position: absolute;
+    top: var(--bn-space-1);
+    inset-inline-end: var(--bn-space-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--bn-state-expired);
+    background-color: color-mix(in oklab, var(--bn-surface) 88%, transparent);
+    border: 1px solid color-mix(in oklab, var(--bn-state-expired) 35%, var(--bn-border));
+    border-radius: var(--bn-radius-input);
+}
+
+.bn-media__protected svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ── Detail ──────────────────────────────────────────────────────────────── */
+
+.bn-media__back {
+    font-size: var(--bn-text-base);
+}
+
+.bn-media__back a {
+    color: var(--bn-text-muted);
+    text-decoration: none;
+}
+
+.bn-media__back a:hover {
+    color: var(--bn-text);
+    text-decoration: underline;
+}
+
+.bn-media__banner {
+    display: flex;
+    align-items: center;
+    gap: var(--bn-space-3);
+    padding: var(--bn-space-3) var(--bn-space-4);
+    border: 1px solid var(--bn-border);
+    border-radius: var(--bn-radius-card);
+    font-size: var(--bn-text-base);
+}
+
+.bn-media__banner--expired {
+    color: var(--bn-text);
+    border-color: color-mix(in oklab, var(--bn-state-expired) 40%, var(--bn-border));
+    background-color: color-mix(in oklab, var(--bn-state-expired) 6%, var(--bn-surface));
+}
+
+.bn-media__banner-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--bn-state-expired);
+}
+
+.bn-media__detail {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--bn-space-6);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .bn-media__detail {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.bn-media__focal-help {
+    margin-bottom: var(--bn-space-3);
+}
+
+/* ── Focal-point crosshair ───────────────────────────────────────────────── */
+
+.bn-media__stage {
+    position: relative;
+    display: block;
+    max-width: 100%;
+    background-color: var(--bn-surface-2);
+    border: 1px solid var(--bn-border);
+    border-radius: var(--bn-radius-card);
+    cursor: crosshair;
+    overflow: hidden;
+    user-select: none;
+}
+
+.bn-media__stage:focus-visible {
+    outline: 2px solid var(--bn-focus-ring);
+    outline-offset: 2px;
+}
+
+.bn-media__preview {
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+}
+
+/*
+ * A ring, not a dot: the point has to stay findable over both a bright sky and
+ * a dark suit, and a single colour cannot do that. The white outer stroke and
+ * the coloured inner ring guarantee contrast against whatever is beneath.
+ */
+.bn-media__crosshair {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2px solid var(--bn-primary-fg);
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 2px var(--bn-focus-grabbed),
+        0 1px 3px rgb(15 23 42 / 0.5);
+    pointer-events: none;
+}
+
+.bn-media__crosshair::after {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    background-color: var(--bn-focus-grabbed);
+    border-radius: 50%;
+}
+
+.bn-media__focal-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bn-space-2);
+    margin-top: var(--bn-space-3);
+}
+
+.bn-media__focal-readout {
+    font-family: var(--bn-font-mono);
+    font-size: var(--bn-text-sm);
+    color: var(--bn-text-muted);
+    margin-inline-end: auto;
+}
+
+.bn-media__crops {
+    display: flex;
+    gap: var(--bn-space-4);
+    margin-top: var(--bn-space-4);
+    padding-top: var(--bn-space-4);
+    border-top: 1px solid var(--bn-border-subtle);
+}
+
+.bn-media__crop {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--bn-space-1);
+}
+
+.bn-media__crop img {
+    display: block;
+    border: 1px solid var(--bn-border);
+    border-radius: var(--bn-radius-input);
+}
+
+/* ── Facts, usage and versions ───────────────────────────────────────────── */
+
+.bn-media__facts {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: var(--bn-space-2) var(--bn-space-4);
+    margin: 0;
+    font-size: var(--bn-text-base);
+    line-height: var(--bn-text-base-height);
+}
+
+.bn-media__facts dt {
+    color: var(--bn-text-muted);
+}
+
+.bn-media__facts dd {
+    margin: 0;
+    color: var(--bn-text);
+    word-break: break-word;
+}
+
+.bn-media__mono {
+    font-family: var(--bn-font-mono);
+    font-size: var(--bn-text-sm);
+}
+
+.bn-media__usage-count {
+    font-size: var(--bn-text-lg);
+    line-height: var(--bn-text-lg-height);
+    color: var(--bn-text);
+    margin-bottom: var(--bn-space-3);
+}
+
+.bn-media__table-wrap {
+    overflow-x: auto;
+}
+
+.bn-media__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--bn-text-base);
+    line-height: var(--bn-text-base-height);
+}
+
+.bn-media__table th,
+.bn-media__table td {
+    padding: var(--bn-space-2) var(--bn-space-3);
+    text-align: start;
+    vertical-align: top;
+    border-bottom: 1px solid var(--bn-border-subtle);
+}
+
+.bn-media__table th {
+    font-size: var(--bn-text-sm);
+    line-height: var(--bn-text-sm-height);
+    font-weight: 600;
+    color: var(--bn-text-muted);
+}
+
+.bn-media__row--alt {
+    background-color: var(--bn-surface-2);
+}
