@@ -18,10 +18,10 @@ use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
+use Illuminate\Image\ImageManager;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
-use Intervention\Image\ImageManager;
 
 /**
  * Services, routes, views and translations of the media library.
@@ -40,9 +40,11 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         // caches an empty answer for a namespace it does not know yet.
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'media-library');
 
-        $this->app->singleton(ImageProcessor::class, static fn (): ImageProcessor => new ImageProcessor(
-            MediaConfig::string('driver', 'gd') === 'imagick' ? ImageManager::imagick() : ImageManager::gd(),
+        // Laravel's image component; a null driver defers to the app's `images.default`.
+        $this->app->singleton(ImageProcessor::class, static fn ($app): ImageProcessor => new ImageProcessor(
+            $app->make(ImageManager::class),
             MediaConfig::int('renditions.quality', 82),
+            MediaConfig::nullableString('driver'),
         ));
 
         $this->app->singletonIf(UsageResolver::class, static fn (): UsageResolver => new DatabaseUsageResolver(DB::connection()));
@@ -88,6 +90,8 @@ final class MediaLibraryServiceProvider extends ServiceProvider
             $this->publishes([__DIR__.'/../config/media-library.php' => config_path('media-library.php')], 'media-library-config');
             $this->publishes([__DIR__.'/../database/migrations' => database_path('migrations')], 'media-library-migrations');
             $this->publishes([__DIR__.'/../resources/lang' => $this->app->langPath('vendor/media-library')], 'media-library-translations');
+            // A published view in resources/views/vendor/media-library wins over the package's own.
+            $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/media-library')], 'media-library-views');
         }
 
         $this->registerRenderRoute();

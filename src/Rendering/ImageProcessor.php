@@ -5,28 +5,29 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Rendering;
 
 use Banyan\FilamentMediaLibrary\Exceptions\UnreadableImage;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Interfaces\ImageInterface;
+use Illuminate\Image\Image;
+use Illuminate\Image\ImageManager;
 use Throwable;
 
 /**
  * The only place in the library that decodes or encodes image bytes.
  *
- * Wrapping intervention/image rather than calling it from three surfaces keeps
- * the focal-point arithmetic in one place — and that arithmetic is the whole
- * reason this class exists. intervention's own `cover()` takes a nine-point
- * position ('top-left' … 'bottom-right'); a focal point is a continuous
- * fraction, so the crop rectangle is computed here and handed to `crop()`
- * directly.
+ * Built on Laravel's own image component (`Illuminate\Image`, the `Image`
+ * facade), so a host configures drivers the Laravel way and nothing here talks
+ * to a driver directly. Keeping it in one class keeps the focal-point
+ * arithmetic in one place — and that arithmetic is the reason this class
+ * exists: `cover()` only centres, while a focal point is a continuous
+ * fraction, so the crop rectangle is computed here and handed to `crop()`.
  */
 final readonly class ImageProcessor
 {
-    /** Formats where a quality option means something. */
-    private const array LOSSY = ['image/jpeg', 'image/webp', 'image/avif'];
-
+    /**
+     * @param  string|null  $driver  'gd' or 'imagick'; null uses Laravel's `images.default`
+     */
     public function __construct(
-        private ImageManager $manager,
+        private ImageManager $images,
         private int $quality = 82,
+        private ?string $driver = null,
     ) {}
 
     /**
@@ -37,17 +38,15 @@ final readonly class ImageProcessor
     public function dimensions(string $binary): ?array
     {
         try {
-            $image = $this->manager->read($binary);
+            return $this->read($binary)->dimensions();
         } catch (Throwable) {
             return null;
         }
-
-        return [$image->width(), $image->height()];
     }
 
     /**
      * Produce the derivative described by the spec, cropping around the focal
-     * point when the spec crops.
+     * point when the spec crops. The output keeps the original's format.
      *
      * @param  float  $focalX  0–1 fraction of the width
      * @param  float  $focalY  0–1 fraction of the height
@@ -62,28 +61,39 @@ final readonly class ImageProcessor
         string $mediaType,
     ): string {
         try {
-            $image = $this->manager->read($binary);
+            $image = $this->read($binary);
+            [$sourceWidth, $sourceHeight] = $image->dimensions();
+
+            if ($spec->crops()) {
+                /** @var int<1, max> $width */
+                $width = $spec->width;
+                /** @var int<1, max> $height */
+                $height = $spec->height;
+
+                [$cropWidth, $cropHeight, $x, $y] = $this->focalCrop($sourceWidth, $sourceHeight, $width, $height, $focalX, $focalY);
+
+                // Immutable: each transform returns a new Image.
+                $image = $image->crop($cropWidth, $cropHeight, $x, $y)->resize($width, $height);
+            } else {
+                // scale() never upscales: asking for a 2000px wide rendition of
+                // an 800px original should not make a blurrier, larger file.
+                $image = $image->scale(
+                    $spec->width === null ? null : max(1, $spec->width),
+                    $spec->height === null ? null : max(1, $spec->height),
+                );
+            }
+
+            return $image->quality(max(1, min(100, $this->quality)))->toBytes();
         } catch (Throwable) {
             throw UnreadableImage::make($mediaType);
         }
+    }
 
-        if ($spec->crops()) {
-            /** @var int $width */
-            $width = $spec->width;
-            /** @var int $height */
-            $height = $spec->height;
+    private function read(string $binary): Image
+    {
+        $image = $this->images->fromBytes($binary);
 
-            $this->cropToFocalPoint($image, $width, $height, $focalX, $focalY);
-            $image->resize($width, $height);
-        } else {
-            // scaleDown, not resize: asking for a 2000px wide rendition of an
-            // 800px original should not upscale it into a blurrier, larger file.
-            $image->scaleDown($spec->width, $spec->height);
-        }
-
-        $options = in_array($mediaType, self::LOSSY, true) ? ['quality' => $this->quality] : [];
-
-        return (string) $image->encodeByMediaType($mediaType, ...$options);
+        return $this->driver === null ? $image : $image->using($this->driver);
     }
 
     /**
@@ -94,17 +104,17 @@ final readonly class ImageProcessor
      * Clamping rather than letting the rectangle hang off the edge is what makes
      * a focal point at (0.95, 0.05) — a logo in the top-right corner — produce a
      * crop that contains the logo, instead of one padded with background.
+     *
+     * @return array{0: int<1, max>, 1: int<1, max>, 2: int, 3: int} width, height, x, y
      */
-    private function cropToFocalPoint(
-        ImageInterface $image,
+    private function focalCrop(
+        int $sourceWidth,
+        int $sourceHeight,
         int $targetWidth,
         int $targetHeight,
         float $focalX,
         float $focalY,
-    ): void {
-        $sourceWidth = $image->width();
-        $sourceHeight = $image->height();
-
+    ): array {
         $targetRatio = $targetWidth / $targetHeight;
         $sourceRatio = $sourceWidth / $sourceHeight;
 
@@ -125,7 +135,7 @@ final readonly class ImageProcessor
         $offsetX = max(0, min($offsetX, $sourceWidth - $cropWidth));
         $offsetY = max(0, min($offsetY, $sourceHeight - $cropHeight));
 
-        $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
+        return [$cropWidth, $cropHeight, $offsetX, $offsetY];
     }
 
     private function fraction(float $value): float

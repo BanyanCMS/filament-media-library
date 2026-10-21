@@ -901,6 +901,10 @@ Each asset stores the disk it was uploaded to, and everything about that asset s
 
 A remote disk adds latency to the first request for each size, so put a CDN in front of the render route ([§5](#5-showing-images-on-your-site)).
 
+### Your own pages and views
+
+`MediaLibraryPlugin::make()->libraryPage(MyLibrary::class)->assetPage(MyAsset::class)` registers your subclasses instead of the defaults, and the links between the two pages follow them. For markup only, `php artisan vendor:publish --tag=media-library-views` copies the Blade views to `resources/views/vendor/media-library/`, where they override the package's. See the README section "Overriding pages and views".
+
 ### Navigation
 
 ```php

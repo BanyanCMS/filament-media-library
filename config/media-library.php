@@ -16,7 +16,10 @@ return [
         'renditions' => 'media/renditions',
     ],
 
-    /* The intervention/image driver: 'gd' (ext-gd) or 'imagick' (ext-imagick). */
+    /*
+     * The driver of Laravel's image component (Illuminate\Image): 'gd' (ext-gd)
+     * or 'imagick' (ext-imagick). Null uses the app's own `images.default`.
+     */
     'driver' => env('MEDIA_LIBRARY_DRIVER', 'gd'),
 
     'uploads' => [

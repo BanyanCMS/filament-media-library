@@ -25,9 +25,10 @@
         "illuminate/database": "^13.0",
         "illuminate/filesystem": "^13.0",
         "illuminate/http": "^13.0",
+        "illuminate/image": "^13.0",
         "illuminate/routing": "^13.0",
         "illuminate/support": "^13.0",
-        "intervention/image": "^3.0",
+        "intervention/image": "^4.2",
         "livewire/livewire": "^4.0"
     },
     "require-dev": {

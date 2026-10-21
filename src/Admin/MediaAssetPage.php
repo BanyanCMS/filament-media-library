@@ -10,6 +10,7 @@ use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
+use Banyan\FilamentMediaLibrary\MediaLibraryPlugin;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaVersion;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
@@ -99,7 +100,7 @@ class MediaAssetPage extends Page
 
     public function libraryUrl(): string
     {
-        return MediaLibraryPage::getUrl();
+        return MediaLibraryPlugin::libraryPageClass()::getUrl();
     }
 
     /** @return list<AssetUsage> */

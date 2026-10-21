@@ -25,6 +25,13 @@ final class MediaConfig
         return is_string($value) && $value !== '' ? $value : $fallback;
     }
 
+    public static function nullableString(string $key): ?string
+    {
+        $value = config('media-library.'.$key);
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
     public static function int(string $key, int $fallback): int
     {
         $value = config('media-library.'.$key, $fallback);

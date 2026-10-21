@@ -12,6 +12,7 @@ use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpiryReport;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpirySummary;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
+use Banyan\FilamentMediaLibrary\MediaLibraryPlugin;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaTag;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
@@ -224,7 +225,7 @@ class MediaLibraryPage extends Page
 
     public function assetUrl(MediaAsset $asset): string
     {
-        return MediaAssetPage::getUrl(['asset' => $asset->uuid]);
+        return MediaLibraryPlugin::assetPageClass()::getUrl(['asset' => $asset->uuid]);
     }
 
     public function usageCount(MediaAsset $asset): int

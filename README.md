@@ -33,6 +33,7 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 - [Configuration](#configuration)
 - [Existing tables and custom table names](#existing-tables-and-custom-table-names)
 - [Look and feel, dark mode, languages](#look-and-feel-dark-mode-languages)
+- [Overriding pages and views](#overriding-pages-and-views)
 - [Exceptions](#exceptions)
 - [Testing](#testing)
 - [Running the example](#running-the-example)
@@ -62,7 +63,7 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 ## Requirements
 
 - PHP 8.3+, Laravel 13, Filament v5, Livewire v4.
-- `ext-gd` (default) or `ext-imagick`. Image work uses `intervention/image` v3.
+- `ext-gd` (default) or `ext-imagick`. Image work uses Laravel's own image component (`Illuminate\Image`, the `Image` facade), which drives `intervention/image` v4. Set `media-library.driver` to `null` to use your app's `images.default`.
 - A database. Table names are configurable; see [Configuration](#configuration).
 
 ## Installation
@@ -511,6 +512,34 @@ Set `tables.*` to your own names. If those tables already exist, set `migrations
   The files land in `lang/vendor/media-library/{locale}/media.php`. Keys are read as `media-library::media.*`.
 
 ![The library in dark mode](docs/images/dark.png)
+
+## Overriding pages and views
+
+Swap either page for a subclass of your own, to change a query, add a header action or use your own view:
+
+```php
+use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
+
+final class MediaLibrary extends MediaLibraryPage
+{
+    protected string $view = 'filament.pages.media-library';
+}
+
+// In your panel provider:
+MediaLibraryPlugin::make()
+    ->libraryPage(\App\Filament\Pages\MediaLibrary::class)
+    ->assetPage(\App\Filament\Pages\MediaAsset::class);
+```
+
+The class must extend `MediaLibraryPage` or `MediaAssetPage`. The library and asset pages link to each other through the plugin, so the links go to your pages.
+
+To change only the markup, publish the views. A view in `resources/views/vendor/media-library/` wins over the package's own:
+
+```bash
+php artisan vendor:publish --tag=media-library-views
+```
+
+Services are bound in the container, so you can rebind them too. Bind your own `UsageResolver`, for example (see [Where an asset is used](#where-an-asset-is-used)).
 
 ## Exceptions
 
