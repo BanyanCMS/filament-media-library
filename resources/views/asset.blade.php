@@ -231,13 +231,14 @@
                         @foreach ($this->versions() as $index => $version)
                             <tr wire:key="version-{{ $version->id }}" @class(['bn-media__row--alt' => $index % 2 === 1])>
                                 <td>
-                                    #{{ $version->id }}
+                                    {{-- The ordinal an editor talks about ("version 3"), newest first; not the row id. --}}
+                                    #{{ $loop->count - $loop->index }}
                                     @if ($version->id === $asset->current_version_id)
                                         <span class="bn-media__chip">{{ __('media-library::media.detail.versions_current') }}</span>
                                     @endif
                                 </td>
                                 <td>{{ $version->width !== null && $version->height !== null ? $version->width.' × '.$version->height : '—' }}</td>
-                                <td>{{ $version->size_bytes }}</td>
+                                <td>{{ $version->humanSize() }}</td>
                                 <td class="bn-media__mono">{{ $version->shortChecksum() }}</td>
                                 <td>{{ $version->created_at?->toDayDateTimeString() ?? '—' }}</td>
                             </tr>

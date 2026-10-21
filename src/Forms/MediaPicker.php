@@ -126,7 +126,8 @@ final class MediaPicker extends Select
 
         $asset = MediaAsset::query()->find((int) $value);
 
-        return $asset instanceof MediaAsset ? $this->optionLabel($asset) : null;
+        // A deleted asset says so, rather than Filament falling back to the bare id.
+        return $asset instanceof MediaAsset ? $this->optionLabel($asset) : self::text('media.picker.missing', ['id' => (int) $value]);
     }
 
     /**
@@ -153,6 +154,10 @@ final class MediaPicker extends Select
         // lapsed must still resolve, so it can be labelled expired.
         foreach (MediaAsset::query()->whereIn('id', $ids)->get() as $asset) {
             $labels[$asset->id] = $this->optionLabel($asset);
+        }
+
+        foreach (array_diff($ids, array_keys($labels)) as $missing) {
+            $labels[$missing] = self::text('media.picker.missing', ['id' => $missing]);
         }
 
         return $labels;

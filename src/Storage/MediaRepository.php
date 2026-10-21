@@ -16,6 +16,7 @@ use Banyan\FilamentMediaLibrary\Rendering\ImageProcessor;
 use DateTimeInterface;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -72,7 +73,7 @@ final readonly class MediaRepository
         return $this->connection->transaction(function () use (
             $binary, $filename, $mimeType, $altText, $uploadedBy, $licenseExpiresAt, $dimensions, $uuid
         ): MediaAsset {
-            $path = $this->write($uuid, 1, $filename, $binary);
+            $path = $this->write($this->disk, $uuid, 1, $filename, $binary);
 
             $asset = MediaAsset::query()->create([
                 'uuid' => $uuid,
@@ -125,7 +126,9 @@ final readonly class MediaRepository
             $asset, $binary, $filename, $mimeType, $uploadedBy, $dimensions
         ): MediaVersion {
             $ordinal = $asset->versions()->count() + 1;
-            $path = $this->write($asset->uuid, $ordinal, $filename, $binary);
+            // The asset's own disk, not the configured one: an asset's versions
+            // stay together even after the default disk changes.
+            $path = $this->write($asset->disk, $asset->uuid, $ordinal, $filename, $binary);
 
             $version = $this->appendVersion($asset, $path, $binary, $dimensions, $uploadedBy);
 
@@ -218,7 +221,7 @@ final readonly class MediaRepository
      */
     public function delete(MediaAsset $asset): int
     {
-        /** @var array{paths: list<string>, usage_count: int} $deleted */
+        /** @var array{files: list<array{0: string, 1: string}>, usage_count: int} $deleted */
         $deleted = $this->connection->transaction(function () use ($asset): array {
             $lockedAsset = MediaAsset::query()
                 ->whereKey($asset->id)
@@ -226,7 +229,7 @@ final readonly class MediaRepository
                 ->first();
 
             if ($lockedAsset === null) {
-                return ['paths' => [], 'usage_count' => 0];
+                return ['files' => [], 'usage_count' => 0];
             }
 
             $usageCount = $this->usages->count($lockedAsset->id);
@@ -235,24 +238,27 @@ final readonly class MediaRepository
                 throw new AssetReferenced($lockedAsset->id, $usageCount);
             }
 
-            $paths = $lockedAsset->versions()->pluck('path')->all();
-            $paths[] = $lockedAsset->path;
+            // Each file on the disk its row names: a version written before
+            // the default disk changed still lives where it was written.
+            $files = [[$lockedAsset->disk, $lockedAsset->path]];
+
+            foreach ($lockedAsset->versions()->get(['disk', 'path']) as $version) {
+                $files[] = [$version->disk, $version->path];
+            }
 
             $lockedAsset->delete();
 
             return [
-                'paths' => array_values(array_filter(
-                    $paths,
-                    static fn (mixed $path): bool => is_string($path) && $path !== '',
+                'files' => array_values(array_filter(
+                    $files,
+                    static fn (array $file): bool => $file[0] !== '' && $file[1] !== '',
                 )),
                 'usage_count' => $usageCount,
             ];
         });
 
-        $disk = $this->disk();
-
-        foreach (array_unique($deleted['paths']) as $path) {
-            $disk->delete($path);
+        foreach ($deleted['files'] as [$diskName, $path]) {
+            $this->filesystems->disk($diskName)->delete($path);
         }
 
         $this->forgetRenditions($asset);
@@ -289,10 +295,16 @@ final readonly class MediaRepository
         return $this->renditionsPath;
     }
 
+    /** The disk one asset's files live on, which is not always the configured default. */
+    public function diskFor(MediaAsset $asset): Filesystem
+    {
+        return $this->filesystems->disk($asset->disk);
+    }
+
     /** Drop every cached derivative of one asset. */
     public function forgetRenditions(MediaAsset $asset): void
     {
-        $this->disk()->deleteDirectory($this->renditionsPath.'/'.$asset->uuid);
+        $this->diskFor($asset)->deleteDirectory($this->renditionsPath.'/'.$asset->uuid);
     }
 
     /**
@@ -307,7 +319,7 @@ final readonly class MediaRepository
     ): MediaVersion {
         return MediaVersion::query()->create([
             'media_asset_id' => $asset->id,
-            'disk' => $this->disk,
+            'disk' => $asset->disk,
             'path' => $path,
             'checksum' => hash('sha256', $binary),
             'size_bytes' => strlen($binary),
@@ -322,15 +334,24 @@ final readonly class MediaRepository
      *
      * The path carries the version ordinal, so a replacement can never land on
      * the file it replaces even if the two uploads share a filename.
+     *
+     * Called inside the write's transaction. If that transaction rolls back —
+     * a listener refusing the change, say — the file is removed with it, so a
+     * refused upload leaves no orphan on the disk.
      */
-    private function write(string $uuid, int $ordinal, string $filename, string $binary): string
+    private function write(string $diskName, string $uuid, int $ordinal, string $filename, string $binary): string
     {
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         $extension = preg_match('/^[a-z0-9]{1,5}$/', $extension) === 1 ? $extension : 'bin';
 
         $path = sprintf('%s/%s/%s-v%d.%s', $this->originalsPath, substr($uuid, 0, 2), $uuid, $ordinal, $extension);
 
-        $this->disk()->put($path, $binary);
+        $disk = $this->filesystems->disk($diskName);
+        $disk->put($path, $binary);
+
+        if ($this->connection instanceof Connection) {
+            $this->connection->afterRollBack(static fn () => $disk->delete($path));
+        }
 
         return $path;
     }

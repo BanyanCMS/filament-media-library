@@ -292,7 +292,7 @@ It is an `ImageColumn` that turns an id into the URL of a cropped thumbnail (def
 
 Three features depend on one fact, "which records use this asset":
 
-- **Delete protection.** An asset that is used cannot be deleted. The library page shows a padlock and no trash icon on it. On the asset page, **Delete asset** is still offered; confirming shows the usage count and then fails with a notification, because `delete()` throws `AssetReferenced`.
+- **Delete protection.** An asset that is used cannot be deleted. The library page shows a padlock and no trash icon on it, and the asset page does not offer **Delete asset**; its usage table shows where the asset is used instead. Underneath, `delete()` throws `AssetReferenced` whatever surface asks.
 - **The licence report.** "1 expired asset is still used" is the line that turns a housekeeping reminder into an urgent one.
 - **The "Usage" table** on the asset page: where, which field, which locale.
 
@@ -713,7 +713,7 @@ Consequences for your listener:
 - **Keep it fast and reliable.** A slow listener slows the editor's request. A listener that talks to an external service can fail the upload.
 - **Use the default database connection** (the one the library writes to) for the audit table, so one failure undoes both. Another connection or a log service cannot be rolled back with the transaction.
 - **Do not queue it** if you need the guarantee. A queued job runs after the transaction and can lose the entry.
-- **Files are not transactional.** The library writes a file before it dispatches the event. If the listener throws, the database rolls back but the file just written stays on the disk as an orphan. It is unreferenced and does no harm, but you can clean it up if you care.
+- **Files follow the transaction.** The library writes the file before it dispatches the event. If a listener throws, the database rolls back and the file just written is deleted with it, so a refused upload or replacement leaves nothing on the disk.
 
 ### Sending events to an existing audit package
 
@@ -805,7 +805,7 @@ On the asset page, **More** then **Replace file** uploads a new image for the sa
 
 ![The asset page: focal point crosshair with two sample crops, the details, usage and the version history](images/asset.png)
 
-- The version history lists each file: its number (the version row's id), size in bytes, dimensions, a short checksum and when it was uploaded. The current one is marked.
+- The version history lists each file, newest first: its number (#1 is the original upload), size (e.g. 114.3 KB), dimensions, a short checksum and when it was uploaded. The current one is marked.
 - The history is a record. There is no restore or download button in this release. The old files are still on the disk under `paths.originals`.
 - Replacing changes the asset's filename, type, size and dimensions to the new file's. It does not change the alt text. If the new picture shows something else, edit the alt text.
 - A replacement of a different shape than the old file is fine. Crops are computed from the new bytes and the same focal point; check the point is still in a sensible place.
@@ -893,11 +893,10 @@ MEDIA_LIBRARY_DISK=s3
 
 Any Laravel disk works. The library reads and writes through Laravel's filesystem, and serves every image through its own route, so the bucket can be private. There is no `storage:link` and no public URL to configure. `paths.originals` and `paths.renditions` are prefixes on that disk.
 
-Each asset stores the disk its original was written to. Renditions are written to the **currently configured** disk. If you change `MEDIA_LIBRARY_DISK`:
+Each asset stores the disk it was uploaded to, and everything about that asset stays there: its replacements, its renditions and its deletion all use the asset's own disk. If you change `MEDIA_LIBRARY_DISK`:
 
-- existing assets keep reading their originals from the disk they were stored on, so keep that disk configured in `config/filesystems.php`;
+- existing assets keep working from the disk they were stored on, so keep that disk defined in `config/filesystems.php`;
 - new uploads go to the new disk;
-- new renditions go to the new disk;
 - to move a library, copy the files to the new disk at the same paths, then update the `disk` column on the asset and version rows.
 
 A remote disk adds latency to the first request for each size, so put a CDN in front of the render route ([§5](#5-showing-images-on-your-site)).
@@ -1148,14 +1147,13 @@ Things worth knowing before you rely on it:
 - **Usage is only as good as your hooks.** The picker stores ids; your model must call the recorder. Bulk writes skip model events.
 - **The picker hides expired assets** from the options. An editor who wants to reuse one has to renew its licence first.
 - **The picker offers the newest 50.** Search finds the rest. There is no paging in the dropdown.
-- **The library grid shows the newest 120.** Use search, tags and the licence filters. There is no pagination yet, and no bulk actions.
+- **The library grid loads 120 at a time.** **Load more** fetches the next 120; search, tags and the licence filters narrow it. There are no bulk actions.
 - **Thumbnail labels in the picker are plain strings,** not objects: Livewire serialises an `HtmlString` to JSON and the select would show `[object Object]`. The consequence is that the label HTML cannot be customised per field, only turned on or off with `thumbnails()`.
 - **An upload must finish before submit.** The dialog's button is disabled while the file uploads.
 - **Version history is read-only.** No restore, no download, no deletion of an old version. Old files stay on the disk.
 - **Images only.** JPEG, PNG, GIF, WebP and AVIF by default; no SVG, PDF, audio or video. Renditions keep the original format, with no WebP or AVIF conversion.
 - **Tags are flat and manual.** No taxonomy, no automatic tagging, no automatic alt text.
 - **Expiry does not take an image down.** It informs; it does not enforce.
-- **Events are transactional, files are not.** A failing listener leaves a stray file on the disk (see [§6](#6-an-audit-log)).
 - **Calling the services is not gated.** Only the pages and the picker check the ability.
 - **A rendition is a CPU cost on first request.** The first visit to a new size pays for it. If you launch a campaign page, open it once yourself, or put a CDN in front.
 - **Changing the disk later needs a file move** ([§9](#9-customising)).

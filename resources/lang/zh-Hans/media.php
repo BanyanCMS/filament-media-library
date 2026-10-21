@@ -5,7 +5,6 @@ declare(strict_types=1);
 return [
     'nav' => [
         'label' => '媒体库',
-        'group' => '媒体',
     ],
     'title' => '媒体库',
     'intro' => '所有受管图片，及其替代文本、焦点与引用位置。',
@@ -25,6 +24,7 @@ return [
         'review_soon' => '查看即将到期',
     ],
     'count' => '{0} 无素材|{1} 1 个素材|[2,*] :count 个素材',
+    'count_partial' => '显示 :shown / :total 项素材',
     'usage_count' => '{0} 未被引用|{1} 被 1 处引用|[2,*] 被 :count 处引用',
     'filter' => [
         'search' => '搜索文件名或替代文本',
@@ -58,6 +58,7 @@ return [
         'save_focal' => '保存焦点',
         'reset_focal' => '居中',
         'more' => '更多',
+        'load_more' => '加载更多',
     ],
     'delete_confirm' => '删除 :name？没有其他内容引用它。',
     'delete_confirm_used' => '无法删除 :name，因为它仍被 :count 处引用。请先移除这些引用。',
@@ -110,5 +111,6 @@ return [
         'upload' => '上传新图片',
         'upload_heading' => '上传新素材',
         'search' => '搜索文件名或替代文字',
+        'missing' => '已删除的图片（#:id）',
     ],
 ];

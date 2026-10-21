@@ -102,10 +102,13 @@ it('labels an expired asset that is already picked as expired', function (): voi
         ]);
 });
 
-it('resolves no label for an asset that no longer exists', function (): void {
-    $test = Livewire::actingAs(User::make())->test(PickerForm::class)->set('data.gallery', [9999]);
+it('labels an asset that no longer exists as deleted instead of showing a bare id', function (): void {
+    $test = Livewire::actingAs(User::make())->test(PickerForm::class)
+        ->set('data.gallery', [9999])
+        ->set('data.hero_id', 9998);
 
-    expect(picker($test, 'gallery')->getOptionLabels())->toBe([]);
+    expect(picker($test, 'gallery')->getOptionLabels())->toBe([9999 => 'Deleted image (#9999)'])
+        ->and(picker($test)->getOptionLabel())->toBe('Deleted image (#9998)');
 });
 
 it('renders escaped thumbnails with the asset alt text when asked', function (): void {

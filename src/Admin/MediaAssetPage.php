@@ -264,6 +264,10 @@ class MediaAssetPage extends Page
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
+            // An asset still in use cannot be deleted (MediaRepository::delete()
+            // refuses it), so the button is not offered; the usage table above
+            // says where it is used instead.
+            ->visible(fn (): bool => $this->usageCount() === 0)
             ->modalDescription(function (): string {
                 $asset = $this->record();
 

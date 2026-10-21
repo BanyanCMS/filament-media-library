@@ -86,7 +86,12 @@
             @endif
         </div>
 
-        <p class="bn-media__meta bn-media__count">{{ trans_choice('media-library::media.count', count($assets), ['count' => count($assets)]) }}</p>
+        @php $total = $this->totalAssets(); @endphp
+        <p class="bn-media__meta bn-media__count" aria-live="polite">
+            {{ count($assets) < $total
+                ? __('media-library::media.count_partial', ['shown' => count($assets), 'total' => $total])
+                : trans_choice('media-library::media.count', $total, ['count' => $total]) }}
+        </p>
 
         @if ($assets === [])
             <p class="bn-media__empty">
@@ -166,6 +171,14 @@
                     </li>
                 @endforeach
             </ul>
+
+            @if (count($assets) < $total)
+                <div class="bn-media__more">
+                    <x-filament::button color="gray" wire:click="loadMore" wire:loading.attr="disabled">
+                        {{ __('media-library::media.actions.load_more') }}
+                    </x-filament::button>
+                </div>
+            @endif
         @endif
     </x-filament::section>
 </div>

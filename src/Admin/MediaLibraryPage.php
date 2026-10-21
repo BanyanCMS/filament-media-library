@@ -20,6 +20,7 @@ use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Throwable;
 use UnitEnum;
@@ -53,6 +54,11 @@ class MediaLibraryPage extends Page
     public bool $expiredOnly = false;
 
     public bool $expiringOnly = false;
+
+    /** How many cards the grid shows; "Load more" raises it a page at a time. */
+    public int $shown = self::PAGE_SIZE;
+
+    public const PAGE_SIZE = 120;
 
     /** @var array<int, int> */
     private array $liveUsageCounts = [];
@@ -98,7 +104,43 @@ class MediaLibraryPage extends Page
     /** @return list<MediaAsset> */
     public function assets(): array
     {
-        $query = MediaAsset::query()->with('tags')->orderByDesc('id')->limit(120);
+        $query = $this->filtered()->with('tags')->orderByDesc('id')->limit(max(self::PAGE_SIZE, $this->shown));
+
+        $assets = array_values($query->get()->all());
+        $assetIds = [];
+
+        foreach ($assets as $asset) {
+            $assetIds[] = $asset->id;
+        }
+
+        $this->liveUsageCounts = app(UsageResolver::class)->counts($assetIds);
+
+        return $assets;
+    }
+
+    /** Every asset the current filters match, not just the ones on screen. */
+    public function totalAssets(): int
+    {
+        return $this->filtered()->count();
+    }
+
+    public function loadMore(): void
+    {
+        $this->shown += self::PAGE_SIZE;
+    }
+
+    /** A new filter starts from the first page again. */
+    public function updated(string $property): void
+    {
+        if (in_array($property, ['search', 'tagId', 'expiredOnly', 'expiringOnly'], true)) {
+            $this->shown = self::PAGE_SIZE;
+        }
+    }
+
+    /** @return Builder<MediaAsset> */
+    private function filtered(): Builder
+    {
+        $query = MediaAsset::query();
 
         if (trim($this->search) !== '') {
             $term = '%'.trim($this->search).'%';
@@ -122,16 +164,7 @@ class MediaLibraryPage extends Page
                 ->where('license_expires_at', '<=', now()->addDays($this->expiryWarningDays()));
         }
 
-        $assets = array_values($query->get()->all());
-        $assetIds = [];
-
-        foreach ($assets as $asset) {
-            $assetIds[] = $asset->id;
-        }
-
-        $this->liveUsageCounts = app(UsageResolver::class)->counts($assetIds);
-
-        return $assets;
+        return $query;
     }
 
     public function isFiltered(): bool
@@ -157,18 +190,21 @@ class MediaLibraryPage extends Page
         $this->tagId = null;
         $this->expiredOnly = false;
         $this->expiringOnly = false;
+        $this->shown = self::PAGE_SIZE;
     }
 
     public function showExpiredAssets(): void
     {
         $this->expiredOnly = true;
         $this->expiringOnly = false;
+        $this->shown = self::PAGE_SIZE;
     }
 
     public function showExpiringAssets(): void
     {
         $this->expiredOnly = false;
         $this->expiringOnly = true;
+        $this->shown = self::PAGE_SIZE;
     }
 
     public function expirySummary(): MediaExpirySummary

@@ -122,6 +122,6 @@ final class MediaForms
     {
         $out = MediaConfig::strings('uploads.mime_types');
 
-        return $out === [] ? ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] : $out;
+        return $out === [] ? ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'] : $out;
     }
 }

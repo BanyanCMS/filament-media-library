@@ -5,7 +5,6 @@ declare(strict_types=1);
 return [
     'nav' => [
         'label' => 'Media library',
-        'group' => 'Media',
     ],
     'title' => 'Media library',
     'intro' => 'Every managed image, its alt text, its focal point and where it is used.',
@@ -25,6 +24,7 @@ return [
         'review_soon' => 'Review upcoming',
     ],
     'count' => '{0} No assets|{1} 1 asset|[2,*] :count assets',
+    'count_partial' => 'Showing :shown of :total assets',
     'usage_count' => '{0} Used in no places|{1} Used in 1 place|[2,*] Used in :count places',
     'filter' => [
         'search' => 'Search filename or alt text',
@@ -58,6 +58,7 @@ return [
         'save_focal' => 'Save focal point',
         'reset_focal' => 'Centre',
         'more' => 'More',
+        'load_more' => 'Load more',
     ],
     'delete_confirm' => 'Delete :name? Nothing else references it.',
     'delete_confirm_used' => 'Cannot delete :name because it is still used in :count places. Remove those references first.',
@@ -110,5 +111,6 @@ return [
         'upload' => 'Upload new',
         'upload_heading' => 'Upload a new asset',
         'search' => 'Search filename or alt text',
+        'missing' => 'Deleted image (#:id)',
     ],
 ];

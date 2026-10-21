@@ -52,7 +52,7 @@ final readonly class RenditionService
             return [$original, $asset->mime_type];
         }
 
-        $disk = $this->media->disk();
+        $disk = $this->media->diskFor($asset);
         $path = $this->path($asset, $spec);
 
         if ($disk->exists($path)) {

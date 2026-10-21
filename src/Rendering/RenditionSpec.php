@@ -55,12 +55,6 @@ final readonly class RenditionSpec
         return $this->fit === self::FIT_CROP && $this->width !== null && $this->height !== null;
     }
 
-    /** The part of a cache path that this spec decides. */
-    public function cacheKey(): string
-    {
-        return sprintf('%s x %s %s', $this->width ?? 'auto', $this->height ?? 'auto', $this->fit);
-    }
-
     private static function clamp(?int $value, int $max): ?int
     {
         if ($value === null || $value < 1) {

@@ -212,9 +212,9 @@ A signed-in user who may not manage sees a read-only library:
 ![The upload dialog: image file, alt text (required), licence expiry and tags](docs/images/upload.png)
 
 - **Upload files** (managers only) asks for the file, the alt text (required), an optional licence expiry date and comma-separated tags. Tags are lower-cased on save.
-- The grid shows the newest **120** assets first. Use the search box (filename or alt text), the tag filter and the licence filters to find older ones.
+- The grid shows the newest **120** assets first, with **Load more** for the next 120 and a "Showing 120 of N" count. The search box (filename or alt text), the tag filter and the licence filters narrow it.
 - A card shows a trash icon when the asset is unused and a padlock when it is used. Click a card to open the asset page.
-- On the asset page, **Edit details** changes alt text and licence expiry. **More** holds Edit tags, Replace file and Delete asset. The focal point is set on the image itself.
+- On the asset page, **Edit details** changes alt text and licence expiry. **More** holds Edit tags, Replace file and, for an asset nothing uses, Delete asset. The focal point is set on the image itself.
 - The **Version history** lists every file the asset has had. It is a record: there is no restore or download button in this release.
 
 ## MediaPicker: choosing an image in a form
@@ -497,7 +497,7 @@ Change table names before the first migration runs. Raise PHP's `upload_max_file
 
 ## Existing tables and custom table names
 
-Set `tables.*` to your own names. If those tables already exist, set `migrations` to `false` so the package does not try to create them. If you publish the migration (`--tag=media-library-migrations`) to edit it, also set `migrations` to `false`, or both copies will run. The guide lists the columns the models expect.
+Set `tables.*` to your own names. If those tables already exist, set `migrations` to `false` so the package does not try to create them. If you publish the migration (`--tag=media-library-migrations`) to edit it, set `migrations` to `false` so only your edited copy is loaded. The guide lists the columns the models expect.
 
 ## Look and feel, dark mode, languages
 
@@ -563,7 +563,7 @@ Then add `ArticlesServiceProvider` to `bootstrap/providers.php`, add `ArticleRes
 
 **I deleted an article and the image is still "in use".** Call `UsageRecorder::forget($article)` when the model is deleted.
 
-**Images 404 after I changed `MEDIA_LIBRARY_DISK`.** Each asset remembers the disk its original was written to, but renditions are written to the configured disk. Move the files, or keep the old disk configured.
+**Images 404 after I changed `MEDIA_LIBRARY_DISK`.** Each asset keeps using the disk it was uploaded to (originals, replacements and renditions), so keep the old disk defined in `config/filesystems.php`. Only new uploads go to the new disk.
 
 **Do I need `storage:link`?** No. Nothing is served by a direct URL to the disk.
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 return [
     'nav' => [
         'label' => '媒體庫',
-        'group' => '媒體',
     ],
     'title' => '媒體庫',
     'intro' => '所有受管圖片，及其替代文字、焦點與引用位置。',
@@ -25,6 +24,7 @@ return [
         'review_soon' => '查看即將到期',
     ],
     'count' => '{0} 無素材|{1} 1 個素材|[2,*] :count 個素材',
+    'count_partial' => '顯示 :shown / :total 項素材',
     'usage_count' => '{0} 未被引用|{1} 被 1 處引用|[2,*] 被 :count 處引用',
     'filter' => [
         'search' => '搜尋檔名或替代文字',
@@ -58,6 +58,7 @@ return [
         'save_focal' => '儲存焦點',
         'reset_focal' => '置中',
         'more' => '更多',
+        'load_more' => '載入更多',
     ],
     'delete_confirm' => '刪除 :name？沒有其他內容引用它。',
     'delete_confirm_used' => '無法刪除 :name，因為它仍被 :count 處引用。請先移除這些引用。',
@@ -110,5 +111,6 @@ return [
         'upload' => '上傳新圖片',
         'upload_heading' => '上傳新素材',
         'search' => '搜尋檔案名稱或替代文字',
+        'missing' => '已刪除的圖片（#:id）',
     ],
 ];

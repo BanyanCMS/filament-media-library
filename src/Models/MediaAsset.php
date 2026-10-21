@@ -102,8 +102,14 @@ final class MediaAsset extends Model
     /** Bytes as a short human string. Presentation, but shared by three surfaces. */
     public function humanSize(): string
     {
+        return self::formatBytes($this->size_bytes);
+    }
+
+    /** "117012" as "114.3 KB": the unit a person reads, not the one a disk counts. */
+    public static function formatBytes(int $bytes): string
+    {
         $units = ['B', 'KB', 'MB', 'GB'];
-        $size = (float) $this->size_bytes;
+        $size = (float) $bytes;
         $unit = 0;
 
         while ($size >= 1024 && $unit < count($units) - 1) {

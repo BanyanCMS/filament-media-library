@@ -56,4 +56,9 @@ final class MediaVersion extends Model
     {
         return substr($this->checksum, 0, 12);
     }
+
+    public function humanSize(): string
+    {
+        return MediaAsset::formatBytes($this->size_bytes);
+    }
 }
