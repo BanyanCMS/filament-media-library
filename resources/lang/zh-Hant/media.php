@@ -105,4 +105,10 @@ return [
     ],
     'not_found' => '該素材已不存在。',
     'shared_locale' => '所有語言',
+    'picker' => [
+        'placeholder' => '選擇圖片',
+        'upload' => '上傳新圖片',
+        'upload_heading' => '上傳新素材',
+        'search' => '搜尋檔案名稱或替代文字',
+    ],
 ];

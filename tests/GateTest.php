@@ -39,6 +39,17 @@ it('asks the fallback only while the manage ability is undefined', function (): 
     expect(MediaLibraryGate::allowsManage())->toBeFalse();
 });
 
+it('counts a Gate::before() grant even though the ability was never defined', function (): void {
+    $this->actingAs(User::make('Editor'));
+    Gate::before(static fn (User $user, string $ability): ?bool => $ability === 'media.manage' && $user->name === 'Editor' ? true : null);
+
+    expect(MediaLibraryGate::allowsManage())->toBeTrue();
+
+    $this->actingAs(User::make('Visitor'));
+
+    expect(MediaLibraryGate::allowsManage())->toBeFalse();
+});
+
 it('honours the configured ability names', function (): void {
     config()->set('media-library.abilities', ['view' => 'library.see', 'manage' => 'library.edit']);
     Gate::define('library.see', static fn (User $user): bool => $user->name === 'Editor');

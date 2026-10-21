@@ -10,7 +10,7 @@ use Intervention\Image\Interfaces\ImageInterface;
 use Throwable;
 
 /**
- * The only place in Banyan that decodes or encodes image bytes.
+ * The only place in the library that decodes or encodes image bytes.
  *
  * Wrapping intervention/image rather than calling it from three surfaces keeps
  * the focal-point arithmetic in one place — and that arithmetic is the whole

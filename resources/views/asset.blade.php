@@ -4,9 +4,10 @@
 @endphp
 
 <x-filament-panels::page>
+<div class="bn-media">
     @if ($asset === null)
         <x-filament::section>
-            <p class="bn-empty">{{ __('media-library::media.not_found') }}</p>
+            <p class="bn-media__empty">{{ __('media-library::media.not_found') }}</p>
         </x-filament::section>
     @else
         <p class="bn-media__back">
@@ -22,7 +23,7 @@
 
         <div class="bn-media__detail">
             <x-filament::section :heading="__('media-library::media.detail.focal_heading')">
-                <p id="bn-media-focal-help" class="bn-meta bn-media__focal-help">{{ __('media-library::media.detail.focal_help') }}</p>
+                <p id="bn-media-focal-help" class="bn-media__meta bn-media__focal-help">{{ __('media-library::media.detail.focal_help') }}</p>
 
                 {{-- The crosshair. Fractions of the *rendered* box, so the same
                      value is correct at any preview size and after a replacement
@@ -119,11 +120,11 @@
                     <div class="bn-media__crops">
                         <figure class="bn-media__crop">
                             <img src="{{ $this->cropPreviewUrl($asset, 240, 240) }}" alt="" width="120" height="120" />
-                            <figcaption class="bn-meta">1:1</figcaption>
+                            <figcaption class="bn-media__meta">1:1</figcaption>
                         </figure>
                         <figure class="bn-media__crop">
                             <img src="{{ $this->cropPreviewUrl($asset, 320, 120) }}" alt="" width="160" height="60" />
-                            <figcaption class="bn-meta">8:3</figcaption>
+                            <figcaption class="bn-media__meta">8:3</figcaption>
                         </figure>
                     </div>
                 </div>
@@ -158,10 +159,10 @@
                     <dt>{{ __('media-library::media.detail.fact_tags') }}</dt>
                     <dd>
                         @if ($asset->tags->isEmpty())
-                            <span class="bn-meta">{{ __('media-library::media.detail.fact_tags_none') }}</span>
+                            <span class="bn-media__meta">{{ __('media-library::media.detail.fact_tags_none') }}</span>
                         @else
                             @foreach ($asset->tags as $tag)
-                                <span class="bn-chip">{{ $tag->name }}</span>
+                                <span class="bn-media__chip">{{ $tag->name }}</span>
                             @endforeach
                         @endif
                     </dd>
@@ -181,7 +182,7 @@
             @php $usages = $this->usages(); @endphp
 
             @if ($usages === [])
-                <p class="bn-empty">{{ __('media-library::media.detail.usage_empty') }}</p>
+                <p class="bn-media__empty">{{ __('media-library::media.detail.usage_empty') }}</p>
             @else
                 <div class="bn-media__table-wrap">
                     <table class="bn-media__table">
@@ -232,7 +233,7 @@
                                 <td>
                                     #{{ $version->id }}
                                     @if ($version->id === $asset->current_version_id)
-                                        <span class="bn-chip">{{ __('media-library::media.detail.versions_current') }}</span>
+                                        <span class="bn-media__chip">{{ __('media-library::media.detail.versions_current') }}</span>
                                     @endif
                                 </td>
                                 <td>{{ $version->width !== null && $version->height !== null ? $version->width.' × '.$version->height : '—' }}</td>
@@ -246,4 +247,5 @@
             </div>
         </x-filament::section>
     @endif
+</div>
 </x-filament-panels::page>

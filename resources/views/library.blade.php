@@ -6,6 +6,7 @@
 @endphp
 
 <x-filament-panels::page>
+<div class="bn-media">
     <x-filament::section>
         <p class="bn-media__intro">{{ __('media-library::media.intro') }}</p>
 
@@ -85,10 +86,10 @@
             @endif
         </div>
 
-        <p class="bn-meta bn-media__count">{{ trans_choice('media-library::media.count', count($assets), ['count' => count($assets)]) }}</p>
+        <p class="bn-media__meta bn-media__count">{{ trans_choice('media-library::media.count', count($assets), ['count' => count($assets)]) }}</p>
 
         @if ($assets === [])
-            <p class="bn-empty">
+            <p class="bn-media__empty">
                 {{ $this->isFiltered() ? __('media-library::media.empty_filtered') : __('media-library::media.empty') }}
             </p>
         @else
@@ -117,28 +118,28 @@
                         <div class="bn-media__card-body">
                             <a class="bn-media__filename" href="{{ $this->assetUrl($asset) }}">{{ $asset->filename }}</a>
 
-                            <p class="bn-meta bn-media__dims">
+                            <p class="bn-media__meta bn-media__dims">
                                 {{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }} · {{ $asset->humanSize() }}
                             </p>
 
                             <div class="bn-media__flags">
                                 @if (trim($asset->alt_text) === '')
-                                    <span class="bn-chip bn-media__flag--warn">{{ __('media-library::media.no_alt') }}</span>
+                                    <span class="bn-media__chip bn-media__flag--warn">{{ __('media-library::media.no_alt') }}</span>
                                 @else
-                                    <span class="bn-meta bn-media__flag--ok">{{ __('media-library::media.has_alt') }}</span>
+                                    <span class="bn-media__meta bn-media__flag--ok">{{ __('media-library::media.has_alt') }}</span>
                                 @endif
 
                                 @if ($asset->isExpired())
-                                    <span class="bn-chip bn-media__flag--expired">{{ __('media-library::media.expired') }}</span>
+                                    <span class="bn-media__chip bn-media__flag--expired">{{ __('media-library::media.expired') }}</span>
                                 @elseif ($asset->license_expires_at !== null)
-                                    <span class="bn-meta">{{ __('media-library::media.expires', ['date' => $asset->license_expires_at->toFormattedDateString()]) }}</span>
+                                    <span class="bn-media__meta">{{ __('media-library::media.expires', ['date' => $asset->license_expires_at->toFormattedDateString()]) }}</span>
                                 @endif
                             </div>
 
                             @if ($asset->tags->isNotEmpty())
                                 <div class="bn-media__tags">
                                     @foreach ($asset->tags as $tag)
-                                        <span class="bn-chip">{{ $tag->name }}</span>
+                                        <span class="bn-media__chip">{{ $tag->name }}</span>
                                     @endforeach
                                 </div>
                             @endif
@@ -167,4 +168,5 @@
             </ul>
         @endif
     </x-filament::section>
+</div>
 </x-filament-panels::page>

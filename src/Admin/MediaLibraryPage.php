@@ -246,13 +246,11 @@ class MediaLibraryPage extends Page
     }
 
     /**
-     * Deleting a referenced asset is confirmed, not refused.
+     * Delete, with the usage count named in the confirmation.
      *
-     * The count is named in the confirmation because that is the number that
-     * changes the decision — "used in 12 places" and "used nowhere" deserve
-     * different answers, and only the operator can give them. Hard-blocking
-     * would instead teach people to delete the *references* first, which is
-     * strictly more destructive.
+     * The grid only offers this for unused assets ({@see canDelete()}); the
+     * repository is the real boundary and refuses a referenced asset with
+     * `AssetReferenced`, whatever surface asked.
      */
     public function deleteAssetAction(): Action
     {

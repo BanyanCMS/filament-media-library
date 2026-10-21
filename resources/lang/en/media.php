@@ -105,4 +105,10 @@ return [
     ],
     'not_found' => 'That asset no longer exists.',
     'shared_locale' => 'All locales',
+    'picker' => [
+        'placeholder' => 'Choose an image',
+        'upload' => 'Upload new',
+        'upload_heading' => 'Upload a new asset',
+        'search' => 'Search filename or alt text',
+    ],
 ];

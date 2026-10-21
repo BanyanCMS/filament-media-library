@@ -49,7 +49,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Banyan\\FilamentMediaLibrary\\Tests\\": "tests/"
+            "Banyan\\FilamentMediaLibrary\\Tests\\": "tests/",
+            "Banyan\\FilamentMediaLibrary\\Examples\\": "examples/"
         }
     },
     "extra": {

@@ -45,8 +45,15 @@ final class MediaLibraryGate
 
         $ability = MediaConfig::string('abilities.manage', 'media.manage');
 
+        // allows() first: a Gate::before() grant (how permission packages and
+        // super-admin shortcuts work) counts even when the ability itself was
+        // never define()d, which Gate::has() cannot see.
+        if (Gate::allows($ability)) {
+            return true;
+        }
+
         if (Gate::has($ability)) {
-            return Gate::allows($ability);
+            return false;
         }
 
         return self::$manageFallback !== null && (self::$manageFallback)() === true;

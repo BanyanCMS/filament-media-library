@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Tests;
 
+use Banyan\FilamentMediaLibrary\Examples\Articles\ArticlesServiceProvider;
 use Banyan\FilamentMediaLibrary\MediaLibraryServiceProvider;
 use Banyan\FilamentMediaLibrary\Tests\Support\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
@@ -57,6 +58,8 @@ abstract class TestCase extends Orchestra
             FilamentServiceProvider::class,
             LivewireServiceProvider::class,
             MediaLibraryServiceProvider::class,
+            // The worked example (examples/Articles): its migration, editors gate, audit listener and public route.
+            ArticlesServiceProvider::class,
             TestPanelProvider::class,
         ];
     }
@@ -70,6 +73,8 @@ abstract class TestCase extends Orchestra
         $config->set('database.connections.media-lib', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
         $config->set('database.default', 'media-lib');
         $config->set('filesystems.disks.media-lib-test', ['driver' => 'local', 'root' => storage_path('framework/testing/media-lib')]);
+        // The example's tests define the gate themselves; every other test owns its own gate.
+        $config->set('example-articles.define_gate', false);
         $config->set('media-library.disk', 'media-lib-test');
         $config->set('media-library.tables', [
             'assets' => 'lib_assets',
