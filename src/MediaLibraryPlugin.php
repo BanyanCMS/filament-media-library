@@ -50,7 +50,10 @@ final class MediaLibraryPlugin implements Plugin
         return self::ID;
     }
 
-    /** @param class-string<MediaLibraryPage> $page */
+    /**
+     * @param  string  $page  a subclass of MediaLibraryPage; checked at runtime, because a
+     *                        config value or a typo reaches here untyped
+     */
     public function libraryPage(string $page): self
     {
         if (! is_a($page, MediaLibraryPage::class, true)) {
@@ -62,7 +65,7 @@ final class MediaLibraryPlugin implements Plugin
         return $this;
     }
 
-    /** @param class-string<MediaAssetPage> $page */
+    /** @param  string  $page  a subclass of MediaAssetPage; checked at runtime */
     public function assetPage(string $page): self
     {
         if (! is_a($page, MediaAssetPage::class, true)) {
