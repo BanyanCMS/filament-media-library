@@ -2,15 +2,22 @@
 
 **[READ ONLY]** Subtree split of the `filament-media-library` package from [BanyanCMS/banyan](https://github.com/BanyanCMS/banyan).
 
-A governed **media library for Filament v5**: images, documents, video, audio and archives, organised in folders that can be shared, members-only or password protected. Every image has alt text and every other file has a title. Replacing a file adds a version and keeps the old one. Crops follow a focal point that an editor sets. Licences expire, and the library warns before they do. An asset that is still used cannot be deleted. Every change is a Laravel event that you can write to your own audit log.
+A governed **media library for Filament v5**. It holds images, documents, video, audio and archives in folders. A folder can be shared, members-only or password protected.
 
-Editors manage files in one place, and pick them from any form with a `MediaPicker` field. Your site asks for an image by size and gets a signed, cached, focal-point-aware crop, and links to a PDF, a video or an audio file through one signed file route. Files are checked on upload by what they are, not what they are called.
+- Every image has alt text and every other file has a title.
+- Replacing a file adds a version and keeps the old one.
+- Crops follow a focal point that an editor sets.
+- Licences expire, and the library warns before they do.
+- An asset that is still used cannot be deleted.
+- Every change is a Laravel event that you can write to your own audit log.
+
+Editors manage files in one place. They pick files from any form with a `MediaPicker` field. Your site asks for an image by size and gets a signed, cached crop that follows the focal point. It links to a PDF, a video or an audio file through one signed file route. Files are checked on upload by what they are, not by what they are called.
 
 ![The media library: a licence warning, search and tag filters, a folder tree, folder tiles and a grid of assets. A padlock marks an asset that is still used, so it cannot be deleted](docs/images/library.png)
 
-It is a standalone Filament plugin. It needs no other Banyan package. It was extracted from [Banyan CMS](https://github.com/BanyanCMS/banyan), whose media library runs on it. Licensed **MIT**.
+It is a standalone Filament plugin and needs no other Banyan package. It was extracted from [Banyan CMS](https://github.com/BanyanCMS/banyan), whose media library runs on it. Licensed **MIT**.
 
-> **Building a real feature?** Read the **[usage guide](docs/guide.md)**. It walks through a complete, tested example (articles with a hero image and a gallery): who may upload, putting images on a model, keeping "where is it used" correct, showing images on your site, an audit log, licence expiry, documents and video, folders and folder access, customising and testing.
+> **Building a real feature?** Read the **[usage guide](docs/guide.md)**. It walks through a complete, tested example (articles with a hero image and a gallery). It covers who may upload, putting images on a model, keeping "where is it used" correct, showing images on your site, an audit log, licence expiry, documents and video, folders and folder access, customising and testing.
 
 > **Where to change it:** the source lives in the Banyan monorepo at `packages/filament-media-library`. This repository is its published split. Open issues and pull requests against the [monorepo](https://github.com/BanyanCMS/banyan).
 
@@ -53,24 +60,24 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 
 ## What you get
 
-- **A library page** (folder tree, grid, search, tag filter, licence filters) and **a page per asset** (preview, details, focal point, usage, version history), added to a panel with one line.
-- **Five kinds of file.** Images, documents (PDF, Word, Excel, PowerPoint, OpenDocument, CSV, text), video (MP4, WebM), audio (MP3, M4A, WAV) and ZIP archives. The kind comes from the file's bytes and is never chosen by the uploader.
-- **Upload safety.** The type is detected from the content, the extension must agree, Office files with macros and zip bombs are refused, and an `AssetUploading` event plus a `FileScanner` hook (a ClamAV scanner ships as an opt-in) can refuse anything else before a byte is written.
-- **Previews.** A PDF shows in the browser's own viewer, video and audio play in the panel with captions and a transcript, and PDFs get first-page thumbnails when Imagick and Ghostscript are installed.
-- **Folders and sub-folders**, with a tree, breadcrumbs, move, and delete rules that never lose a file. Each folder is **shared**, **members-only** or **password protected**, and access only ever narrows down the tree.
-- **Alt text is required for images, and a title for everything else**, at three levels: the form, the repository (a seeder or an import cannot skip it) and the database.
-- **Versions.** Replacing a file appends a version and keeps the old file. Nothing is overwritten.
+- **A library page** (folder tree, grid, search, tag filter, licence filters) and **a page per asset** (preview, details, focal point, usage, version history). You add both to a panel with one line.
+- **Five kinds of file.** Images, documents (PDF, Word, Excel, PowerPoint, OpenDocument, CSV, text), video (MP4, WebM), audio (MP3, M4A, WAV) and ZIP archives. The kind comes from the file's bytes. The uploader never chooses it.
+- **Upload safety.** The type is detected from the content and the extension must agree. Office files with macros and zip bombs are refused. An `AssetUploading` event and a `FileScanner` hook can refuse anything else before a byte is written. A ClamAV scanner ships as an opt-in.
+- **Previews.** A PDF shows in the browser's own viewer. Video and audio play in the panel with captions and a transcript. PDFs get first-page thumbnails when Imagick and Ghostscript are installed.
+- **Folders and sub-folders**, with a tree, breadcrumbs, move, and delete rules that never lose a file. Each folder is **shared**, **members-only** or **password protected**. Access can only get stricter down the tree.
+- **Alt text is required for images, and a title for everything else.** This is checked in three places: the form, the repository (a seeder or an import cannot skip it) and the database.
+- **Versions.** Replacing a file adds a version and keeps the old file. Nothing is overwritten.
 - **Focal point.** An editor clicks or drags on the image. Every crop keeps that point in frame.
-- **Licence expiry.** An asset can carry an expiry date. The library shows how many licences have lapsed or are about to, and how many of those are still used.
+- **Licence expiry.** An asset can have an expiry date. The library shows how many licences have lapsed or are about to, and how many of those are still used.
 - **Usage tracking and delete protection.** An asset that is used somewhere cannot be deleted. The asset page lists where it is used.
-- **`MediaPicker`**, a form field that chooses (and, for editors, uploads) an asset anywhere in your forms. It offers images by default; `->documents()`, `->videos()`, `->audio()` and `->kinds([...])` widen it, and `->folder()` scopes it.
-- **One signed file route** for everything that is not a rendition, with `nosniff`, a stored content type, `Range` requests for seeking, and temporary URLs on S3-style disks. Files in restricted folders use short-lived, session-checked addresses instead.
-- **`<x-media-library::file>`**, a Blade component that renders an asset the way its kind wants: a responsive image, a link with the title, format and size, or a player with captions.
-- **Signed renditions.** `RenditionService::url()` returns a signed URL for any size. The image is made on first request and cached. Replacing the file or moving the focal point changes the URL.
+- **`MediaPicker`**, a form field that chooses an asset anywhere in your forms. Editors can also upload through it. It offers images by default. `->documents()`, `->videos()`, `->audio()` and `->kinds([...])` widen it, and `->folder()` limits it to one folder.
+- **One signed file route** for everything that is not a rendition. It sends `nosniff` and a stored content type, supports `Range` requests for seeking, and uses temporary URLs on S3-style disks. Files in restricted folders use short-lived, session-checked addresses instead.
+- **`<x-media-library::file>`**, a Blade component that renders an asset the way its kind needs. It prints a responsive image, a link with the title, format and size, or a player with captions.
+- **Signed renditions.** `RenditionService::url()` returns a signed URL for any size. The image is made on the first request and then cached. Replacing the file or moving the focal point changes the URL.
 - **`MediaThumbnailColumn`** for Filament tables.
-- **Events for an audit log.** One for every change to an asset or a folder, written inside the change's own transaction. Payloads never hold alt text, titles, filenames, folder names or passwords.
-- **Gate abilities** for access, closed by default for anything that changes the library, plus `media.manage-all` for the library administrator.
-- **Any Laravel disk**, configurable table names, English, Traditional Chinese and Simplified Chinese.
+- **Events for an audit log.** There is one for every change to an asset or a folder, written inside the change's own transaction. Payloads never hold alt text, titles, filenames, folder names or passwords.
+- **Gate abilities** for access. Anything that changes the library is closed by default. `media.manage-all` is for the library administrator.
+- **Any Laravel disk**, configurable table names, and English, Traditional Chinese and Simplified Chinese.
 - **No queue, no scheduler, no JavaScript build.** Renditions and PDF thumbnails are made on request. Expiry is computed when you read it.
 
 ![One asset: the focal point crosshair with two sample crops, details, where it is used and the version history](docs/images/asset.png)
@@ -79,20 +86,20 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 
 ### Where the ideas come from
 
-This library was built for Banyan, a CMS aimed at government, public bodies and schools. Those organisations are moving away from WordPress and looking at Drupal or Umbraco as the alternative. The design borrows from those systems, and from image services:
+This library was built for Banyan, a CMS for government, public bodies and schools. Many of these organisations are moving away from WordPress and looking at Drupal or Umbraco instead. The design borrows from those systems and from image services:
 
-- **Drupal Media and the Focal Point module.** A media item is a reusable entity, not a file attached to one record, and every crop keeps the point an editor chose.
-- **Umbraco's media section.** One shared library for the whole site, with "where is this used?" answered before anything is deleted.
-- **The WordPress media library.** The grid, the per-asset page and alt text as a first-class field. Here alt text is required, not optional.
-- **Image CDNs such as imgix and Cloudinary.** Renditions are made on request from a URL, cached, and signed so the URL cannot be abused as a free resizing service.
-- **Digital asset management (DAM) practice.** Licence expiry, version history instead of overwriting, and an audit trail of who changed what. These are the governance needs of public-sector content.
-- **WordPress folder plugins (FileBird, Real Media Library) and TomatoPHP's media manager.** WordPress needs a plugin for folders, and large libraries are unusable without them. Folders here are built in, and some material can be restricted to a team or protected with a password.
+- **Drupal Media and the Focal Point module.** A media item is a reusable entity, not a file attached to one record. Every crop keeps the point an editor chose.
+- **Umbraco's media section.** One shared library for the whole site. It shows "where is this used?" before anything is deleted.
+- **The WordPress media library.** The grid, the per-asset page and alt text as a core field. Here alt text is required, not optional.
+- **Image CDNs such as imgix and Cloudinary.** Renditions are made on request from a URL and cached. They are signed so nobody can use the URL as a free resizing service.
+- **Digital asset management (DAM) practice.** Licence expiry, version history instead of overwriting, and an audit trail of who changed what. Public-sector content needs these.
+- **WordPress folder plugins (FileBird, Real Media Library) and TomatoPHP's media manager.** WordPress needs a plugin for folders, and large libraries are hard to use without them. Folders here are built in. You can limit a folder to a team or protect it with a password.
 
-The principle that runs through all of it: **a file is a governed asset**, not a file upload. It has an accessible description or title, a rights window, a history and a list of the pages that depend on it.
+The main idea is that **a file is a governed asset**, not just an upload. It has an accessible description or title, a rights window, a history and a list of the pages that depend on it.
 
 ### How it differs from other Filament media plugins
 
-All of these are good tools that solve different problems. This summary comes from each project's public page as of October 2026; check them for current details.
+All of these are good tools that solve different problems. This summary comes from each project's public page as of October 2026. Check those pages for current details.
 
 | | **This library** | [Media Library Pro](https://filamentphp.com/plugins/ralphjsmit-media-library-manager) (Ralph J. Smit) | [Crumbls Filament Media Library](https://github.com/Crumbls/filament-media-library) | [TomatoPHP Media Manager](https://github.com/tomatophp/filament-media-manager) | [Media Action](https://filamentphp.com/plugins/hugomyb-media-action) (hugomyb) |
 | --- | --- | --- | --- | --- | --- |
@@ -110,17 +117,27 @@ All of these are good tools that solve different problems. This summary comes fr
 | **Image engine** | Laravel's own `Illuminate\Image` | Spatie conversions | Spatie conversions | Spatie conversions | n/a |
 | **File types** | Images, documents, video, audio, archives | Files | Files | Files | Video, audio, PDF and images (preview) |
 
-**When to choose another plugin.** You already use spatie/laravel-medialibrary collections on your models. You need SVG, video transcoding or streaming (HLS), full-text search inside documents, or a password per file rather than per folder; none of those are in this library yet. You only need to preview a file in a modal; Media Action does that and composes with any library, this one included.
+**When to choose another plugin.**
 
-**When to choose this one.** Accessibility and rights are requirements, not nice-to-haves. The same file is reused on many pages. Replacing or deleting a file must be safe and traceable. Documents must be uploaded safely and some of them kept inside a team. You need crops that keep the subject in frame without an editor cropping every size by hand.
+- You already use spatie/laravel-medialibrary collections on your models.
+- You need SVG, video transcoding or streaming (HLS), full-text search inside documents, or a password per file instead of per folder. This library does not have these yet.
+- You only need to preview a file in a modal. Media Action does that and works with any library, including this one.
+
+**When to choose this one.**
+
+- Accessibility and rights are requirements, not extras.
+- The same file is reused on many pages.
+- Replacing or deleting a file must be safe and traceable.
+- Documents must be uploaded safely, and some must stay inside a team.
+- You need crops that keep the subject in frame without an editor cropping every size by hand.
 
 ## Requirements
 
 - PHP 8.3+, Laravel 13, Filament v5, Livewire v4.
 - `ext-gd` (default) or `ext-imagick`. Image work uses Laravel's own image component (`Illuminate\Image`, the `Image` facade), which drives `intervention/image` v4. Set `media-library.driver` to `null` to use your app's `images.default`.
-- `ext-fileinfo` (detects what an upload really is) and `ext-zip` (inspects zip, Office and OpenDocument files). Both are required by the package.
+- `ext-fileinfo` (detects what an upload really is) and `ext-zip` (inspects zip, Office and OpenDocument files). The package requires both.
 - Optional: `ext-imagick` with Ghostscript, for first-page thumbnails of PDFs ([Previews](#previews)).
-- A database. Table names are configurable; see [Configuration](#configuration).
+- A database. Table names are configurable. See [Configuration](#configuration).
 
 ## Installation
 
@@ -130,7 +147,13 @@ php artisan migrate
 php artisan filament:assets
 ```
 
-The service provider is discovered automatically. `filament:assets` publishes the library's stylesheet; run it again after updating the package. The migrations create seven tables (`media_assets`, `media_versions`, `media_tags`, `media_asset_tag`, `media_usages`, `media_folders`, `media_folder_members`). An existing install of an earlier release only needs `php artisan migrate`: three new migrations add the file-kind, caption and folder columns, and none of the old migrations changed. If you want other names, or you already have these tables, read [Configuration](#configuration) **before** you run `migrate`.
+Laravel discovers the service provider automatically. `filament:assets` publishes the library's stylesheet. Run it again after you update the package.
+
+The migrations create seven tables: `media_assets`, `media_versions`, `media_tags`, `media_asset_tag`, `media_usages`, `media_folders` and `media_folder_members`.
+
+If you upgrade from an earlier release, you only need `php artisan migrate`. Three new migrations add the file-kind, caption and folder columns. None of the old migrations changed.
+
+If you want other table names, or you already have these tables, read [Configuration](#configuration) **before** you run `migrate`.
 
 Add the plugin to a panel:
 
@@ -147,15 +170,17 @@ public function panel(Panel $panel): Panel
 
 The panel now has **Media library** at `/admin/media` (the sidebar item) and one page per asset at `/admin/media/{uuid}`.
 
-**Storage.** Files go to the disk named by `media-library.disk` (default `public`, env `MEDIA_LIBRARY_DISK`). Originals, renditions and every other file are always served through the signed routes, never by a URL straight to the disk. So the disk can be private and you do **not** need `php artisan storage:link`. Point the config at an S3 disk and nothing else changes. If you accept large files, raise PHP's `upload_max_filesize` and `post_max_size`, and Livewire's temporary-upload limit in `config/livewire.php`, to match `uploads.kinds.*.max_size`.
+**Storage.** Files go to the disk named by `media-library.disk` (default `public`, env `MEDIA_LIBRARY_DISK`). The library always serves originals, renditions and every other file through signed routes, never by a URL straight to the disk. So the disk can be private, and you do **not** need `php artisan storage:link`. To use S3, point the config at an S3 disk. Nothing else changes.
+
+If you accept large files, raise PHP's `upload_max_filesize` and `post_max_size`. Raise Livewire's temporary-upload limit in `config/livewire.php` too. Set them to match `uploads.kinds.*.max_size`.
 
 ## Quick start: an image on an article in five steps
 
-This adds a hero image to an `Article` resource. It is the smallest useful path; the [guide](docs/guide.md) explains each step in depth.
+This adds a hero image to an `Article` resource. It is the shortest useful path. The [guide](docs/guide.md) explains each step in more detail.
 
 ### 1. Decide who may upload
 
-Browsing the library and picking an image are open to any signed-in user. **Uploading, replacing, editing and deleting are refused until you define `media.manage`.** In `AppServiceProvider::boot()`:
+Any signed-in user can browse the library and pick an image. **Uploading, replacing, editing and deleting are refused until you define `media.manage`.** Define it in `AppServiceProvider::boot()`:
 
 ```php
 use Illuminate\Support\Facades\Gate;
@@ -171,7 +196,7 @@ Schema::table('articles', function (Blueprint $table): void {
 });
 ```
 
-The picker stores an **id**, not a path or a URL. For a gallery use a `json` column and cast it to `array`.
+The picker stores an **id**, not a path or a URL. For a gallery, use a `json` column and cast it to `array`.
 
 ### 3. Put the picker in your resource
 
@@ -186,11 +211,11 @@ MediaPicker::make('hero_id')->label('Hero image')->thumbnails(),
 MediaThumbnailColumn::make('hero_id')->label('Hero'),
 ```
 
-Remember to add `hero_id` to the model's `$fillable` (or use `$guarded = []`).
+Add `hero_id` to the model's `$fillable` (or use `$guarded = []`).
 
 ### 4. Record that the article uses the image
 
-The picker stores ids only. It does not know which record it belongs to, so **your model has to tell the library what it uses**. Delete protection, the licence report and the "used by" table all read this. Without it the library thinks every asset is unused and lets editors delete it.
+The picker stores ids only. It does not know which record it belongs to, so **your model must tell the library what it uses**. Delete protection, the licence report and the "used by" table all read this. Without it, the library thinks every asset is unused and lets editors delete it.
 
 ```php
 use Banyan\FilamentMediaLibrary\Usage\UsageRecorder;
@@ -224,7 +249,7 @@ $src = app(RenditionService::class)->url($hero, 1200, 630, 'crop');
 <img src="{{ $src }}" width="1200" height="630" alt="{{ $hero->alt_text }}">
 ```
 
-The alt text is the asset's own and is never empty. That is the whole feature working end to end. For a PDF, a video or an audio file instead of an image, see [Delivering files](#delivering-files) and [The file component](#the-file-component).
+The alt text belongs to the asset and is never empty. The feature now works from end to end. For a PDF, a video or an audio file instead of an image, see [Delivering files](#delivering-files) and [The file component](#the-file-component).
 
 ![The Articles list with a thumbnail column](docs/images/articles-table.png)
 
@@ -232,7 +257,7 @@ The alt text is the asset's own and is never empty. That is the whole feature wo
 
 ## Who may do what
 
-Three Laravel Gate abilities. Their names are in `media-library.abilities`.
+There are three Laravel Gate abilities. Their names are in `media-library.abilities`.
 
 | Ability | Default name | Allows | When it is not defined |
 | --- | --- | --- | --- |
@@ -240,15 +265,15 @@ Three Laravel Gate abilities. Their names are in `media-library.abilities`.
 | manage | `media.manage` | Upload, replace, edit details, refocus, retag, move, delete (including the picker's "Upload new") | **Nobody** |
 | manage all | `media.manage-all` | The library administrator: sees and manages every folder, including members-only and password-protected ones, without being a member or unlocking, and may change any folder's access | **Nobody** |
 
-Folders add a second layer on top of these abilities: [Folder access](#folder-access) decides who may open each folder, and a `manage` role inside a members-only folder is a grant of its own.
+Folders add a second layer on top of these abilities. [Folder access](#folder-access) decides who may open each folder. A `manage` role inside a members-only folder is a grant of its own.
 
-Managing is refused until you define it. An undefined permission must never default to open:
+Managing is refused until you define it, so a missing permission never defaults to open:
 
 ```php
 Gate::define('media.manage', fn (User $user): bool => $user->is_editor);
 ```
 
-If your permissions do not live in a Gate ability, give the library a fallback. It is asked **only while the matching ability is undefined**:
+If your permissions do not live in a Gate ability, give the library a fallback. The library asks it **only while the matching ability is undefined**:
 
 ```php
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
@@ -257,11 +282,11 @@ MediaLibraryGate::manageUsing(fn (): bool => auth()->user()?->hasRole('editor') 
 MediaLibraryGate::manageAllUsing(fn (): bool => auth()->user()?->hasRole('super-admin') === true);
 ```
 
-All checks return `false` for a guest. Every write re-checks the gate on the server (page actions, the focal point save and the picker's upload all do), so a hidden button is not the only protection.
+All checks return `false` for a guest. Every write checks the gate again on the server (page actions, the focal point save and the picker's upload all do). A hidden button is not the only protection.
 
-Two things to know:
+Two more points:
 
-- The library asks `Gate::allows()` first, so a `Gate::before()` grant counts (this is how permission packages such as spatie/laravel-permission and super-admin shortcuts work), even when `media.manage` was never `define()`d. Only when nothing grants it and the ability is undefined does `manageUsing()` (or `manageAllUsing()`) decide. Note that a blanket `Gate::before()` super-admin grant also grants `media.manage-all`.
+- The library asks `Gate::allows()` first, so a `Gate::before()` grant counts, even when `media.manage` was never defined with `define()`. Permission packages such as spatie/laravel-permission and super-admin shortcuts work this way. Only when nothing grants the ability, and it is undefined, does `manageUsing()` (or `manageAllUsing()`) decide. A blanket `Gate::before()` super-admin grant also grants `media.manage-all`.
 - `MediaGovernanceService` and the other classes you call from code do **not** check the gate. Only the pages and the picker do. See [Writing from code](#writing-from-code).
 
 A signed-in user who may not manage sees a read-only library:
@@ -272,17 +297,17 @@ A signed-in user who may not manage sees a read-only library:
 
 ![The upload dialog: file, title or alt text, licence expiry and tags](docs/images/upload.png)
 
-- **Upload files** (managers only) asks for the file, then the **alt text** (required for an image) or a **title** (required for every other kind: it is the link text people read), an optional licence expiry date and comma-separated tags. Tags are lower-cased on save. Opened inside a folder, the dialog files the upload there. One file at a time. The form turns away a type that is not on the list with a short message; the [upload guard](#upload-safety) behind it is the real check.
-- The grid shows the folder tiles of the open folder first, then the newest **120** assets, with **Load more** for the next 120 and a "Showing 120 of N" count. The search box (filename, title or alt text), the tag filter and the licence filters narrow it. Inside a folder they search that folder and everything below it; **Search the whole library** widens them.
-- A card shows a thumbnail for an image (and for a PDF, when [thumbnails are available](#previews)) or a kind icon, the kind, size and filename, a trash icon when the asset is unused and a padlock when it is used. Click a card to open the asset page. Tick cards to move several files at once ([Folders](#folders)).
-- On the asset page, **Edit details** changes alt text (images) or title (everything else) and licence expiry. **More** holds Move to folder, Edit tags, Captions (video), Transcript (video and audio), Replace file and, for an asset nothing uses, Delete asset. The focal point is set on the image itself and exists for images only.
-- The **Version history** lists every file the asset has had. It is a record: there is no restore or download button in this release. A replacement must be the same kind: replacing a PDF with an image is refused.
+- **Upload files** (managers only) asks for the file. Then it asks for the **alt text** (required for an image) or a **title** (required for every other kind, and used as the link text). You can also add a licence expiry date and comma-separated tags. Tags are lower-cased on save. If you open the dialog inside a folder, the upload goes into that folder. You upload one file at a time. The form turns away a type that is not on the list with a short message. The real check is the [upload guard](#upload-safety) behind it.
+- The grid shows the folder tiles of the open folder first, then the newest **120** assets. **Load more** shows the next 120, with a "Showing 120 of N" count. The search box (filename, title or alt text), the tag filter and the licence filters narrow the grid. Inside a folder they search that folder and everything below it. **Search the whole library** searches everything.
+- A card shows a thumbnail for an image (and for a PDF, when [thumbnails are available](#previews)) or a kind icon. It also shows the kind, size and filename. A trash icon means the asset is unused. A padlock means it is used. Click a card to open the asset page. Tick cards to move several files at once ([Folders](#folders)).
+- On the asset page, **Edit details** changes alt text (images) or title (everything else) and licence expiry. **More** holds Move to folder, Edit tags, Captions (video), Transcript (video and audio), Replace file and, for an asset nothing uses, Delete asset. You set the focal point on the image itself. It exists for images only.
+- **Version history** lists every file the asset has had. It is a record only. This release has no restore or download button. A replacement must be the same kind. Replacing a PDF with an image is refused.
 
 ![A PDF's asset page: the browser's own viewer inline, with page count, kind, title, folder and details beside it](docs/images/pdf-preview.png)
 
 ## File kinds and accepted types
 
-Every asset has a **kind**: `image`, `document`, `video`, `audio` or `archive` (the `MediaKind` enum). The kind is worked out from the file's bytes when it is uploaded and is never chosen by the uploader, because a kind the uploader could pick is a kind the uploader could lie about. It decides the validation, the preview and which text is required.
+Every asset has a **kind**: `image`, `document`, `video`, `audio` or `archive` (the `MediaKind` enum). The library works out the kind from the file's bytes at upload. The uploader never chooses it, because a kind the uploader could pick is a kind the uploader could lie about. The kind decides the validation, the preview and which text is required.
 
 These are the defaults in `media-library.uploads.kinds`. A type that is not listed is refused with `UnsupportedFileType`.
 
@@ -294,7 +319,7 @@ These are the defaults in `media-library.uploads.kinds`. A type that is not list
 | `audio` | MP3, M4A (AAC), WAV | `mp3` `m4a` `wav` | 100 MB (`102400` KB) |
 | `archive` | ZIP | `zip` | 100 MB (`102400` KB) |
 
-Never accepted, whatever the extension: HTML, XML, SVG, JavaScript, executables, and the macro-enabled `docm`, `xlsm` and `pptm`. An Office file that contains `vbaProject.bin` is refused even when it is named `.docx`. SVG needs sanitising first and is not in this release.
+These are never accepted, whatever the extension: HTML, XML, SVG, JavaScript, executables, and the macro-enabled `docm`, `xlsm` and `pptm`. An Office file that contains `vbaProject.bin` is refused even when it is named `.docx`. SVG needs sanitising first, so it is not in this release.
 
 Change the lists and limits in the config, per kind:
 
@@ -307,31 +332,39 @@ Change the lists and limits in the config, per kind:
 ],
 ```
 
-`max_size` is in kilobytes. The older flat `uploads.max_size` and `uploads.mime_types` keys still work and mean the image kind when `kinds.image` is absent. Listing a type under `image` does not make the decoder read it: adding `image/svg+xml` does not make SVG work. A WebVTT file (`text/vtt`) is a document that must start with `WEBVTT`; it exists to be a video's captions.
+`max_size` is in kilobytes. The older flat `uploads.max_size` and `uploads.mime_types` keys still work. They mean the image kind when `kinds.image` is absent. If you list a type under `image`, the decoder still cannot read it. For example, adding `image/svg+xml` does not make SVG work. A WebVTT file (`text/vtt`) is a document that must start with `WEBVTT`. It exists to be a video's captions.
 
-An asset stores `kind`, `title`, `page_count` (for a PDF, when it can be read), `duration_seconds` (video and audio, left null because reading it needs ffmpeg or getID3, which this package does not depend on; fill it yourself if you know it) and the detected `mime_type`. `$asset->kind` is a `MediaKind`; `$asset->isImage()`, `$asset->formatLabel()` ("PDF", "DOCX") and `$asset->displayName()` (the title, or the filename) are the helpers.
+An asset stores these fields:
+
+- `kind`
+- `title`
+- `page_count` (for a PDF, when the library can read it)
+- `duration_seconds` (video and audio). It is left null because reading it needs ffmpeg or getID3, and this package depends on neither. Fill it yourself if you know it.
+- `mime_type` (the detected type)
+
+`$asset->kind` is a `MediaKind`. These helpers are available: `$asset->isImage()`, `$asset->formatLabel()` ("PDF", "DOCX") and `$asset->displayName()` (the title, or the filename).
 
 ## Upload safety
 
-Whatever the surface (the library, the picker's upload button, `MediaGovernanceService::upload()` from a job), the same checks run in `MediaRepository::store()` and `replace()`, **before anything is written**. A refused file leaves no row and no file on the disk. In this order:
+The same checks run in `MediaRepository::store()` and `replace()`, whatever the entry point: the library, the picker's upload button, or `MediaGovernanceService::upload()` from a job. They run **before anything is written**. A refused file leaves no row and no file on the disk. The checks run in this order:
 
-1. **Detect the type from the bytes** with `finfo`. The file's name and the browser's claim are ignored. Zip-based formats (Office, OpenDocument) are told apart from plain zips by what is inside them; CSV versus plain text is decided by the extension, since the content cannot say.
-2. **The extension must agree** with the detected type, or the file is refused with `ExtensionMismatch`. This stops `cv.docx` that is really HTML, and `report.pdf.exe`.
-3. **The type must be on the allow-list** (`UnsupportedFileType`), and a replacement must be the **same kind** as the asset (`KindMismatch`).
+1. **Detect the type from the bytes** with `finfo`. The library ignores the file's name and the browser's claim. It tells zip-based formats (Office, OpenDocument) from plain zips by what is inside them. For CSV and plain text it uses the extension, because the content cannot tell them apart.
+2. **The extension must agree** with the detected type, or the file is refused with `ExtensionMismatch`. This stops a `cv.docx` that is really HTML, and `report.pdf.exe`.
+3. **The type must be on the allow-list** (`UnsupportedFileType`). A replacement must be the **same kind** as the asset (`KindMismatch`).
 4. **The kind's size limit** (`FileTooLarge`).
 5. **Kind-specific checks:**
    - an image must decode (`UnreadableImage`);
    - a PDF must start with `%PDF-`;
-   - for a zip, an Office file or an OpenDocument file, the entries are listed and the file is refused if there are more than `uploads.archive.max_entries` (default 5000) or if the entries expand to more than 1 GB (`UploadRejected`: a zip-bomb guard);
+   - for a zip, an Office file or an OpenDocument file, the library lists the entries. It refuses the file if there are more than `uploads.archive.max_entries` (default 5000) or if the entries expand to more than 1 GB (`UploadRejected`, a zip-bomb guard);
    - an Office file with macros is refused (`UnsupportedFileType`).
-6. **The `AssetUploading` event**, then the **scanner**, if you set one (below).
-7. **The required text.** An image needs alt text (`AltTextRequired`), everything else a title (`TitleRequired`).
+6. **The `AssetUploading` event**, then the **scanner**, if you set one (see below).
+7. **The required text.** An image needs alt text (`AltTextRequired`). Everything else needs a title (`TitleRequired`).
 
-The form's own file field also lists the accepted types and size, so a wrong file is usually turned away with a short message before it reaches the guard. Code that calls the services directly gets the guard and nothing else, which is why the guard is the real check.
+The form's own file field also lists the accepted types and size. So a wrong file is usually turned away with a short message before it reaches the guard. Code that calls the services directly gets the guard and nothing else. This is why the guard is the real check.
 
 ### Refusing a file yourself: `AssetUploading`
 
-Dispatched once the built-in checks pass and before the scanner. It is a plain event, not a `MediaEvent`, and it is not an audit entry: it carries the temporary file's path.
+The library dispatches this event after the built-in checks pass and before the scanner. It is a plain event, not a `MediaEvent`, and it is not an audit entry. It carries the temporary file's path.
 
 ```php
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
@@ -347,7 +380,7 @@ Event::listen(function (AssetUploading $upload): void {
 });
 ```
 
-A listener that throws refuses the upload. Do not put the filename in the message: the exception text is shown to the uploader and may be logged.
+A listener that throws refuses the upload. Do not put the filename in the message. The uploader sees the exception text, and it may be logged.
 
 ### Scanning: `FileScanner` and ClamAV
 
@@ -368,9 +401,9 @@ final class MyScanner implements FileScanner
 }
 ```
 
-An infected result throws `UploadRejected` with that reason. A scanner that cannot reach its engine should **throw**, not return clean: an unscanned file must not read as a safe one. The class is resolved from the container, so it can take dependencies, and a class that does not implement `FileScanner` throws a `LogicException`.
+An infected result throws `UploadRejected` with that reason. If a scanner cannot reach its engine, it should **throw** and not return clean. An unscanned file must not look safe. The library resolves the class from the container, so it can take dependencies. A class that does not implement `FileScanner` throws a `LogicException`.
 
-A ClamAV scanner ships as an opt-in example. It speaks clamd's `INSTREAM` command over a socket, is not a dependency and is off until you name it:
+A ClamAV scanner ships as an opt-in example. It sends clamd's `INSTREAM` command over a socket. It is not a dependency and stays off until you name it:
 
 ```php
 // config/media-library.php
@@ -384,7 +417,11 @@ A ClamAV scanner ships as an opt-in example. It speaks clamd's `INSTREAM` comman
 ],
 ```
 
-When clamd is unreachable the scanner throws, so uploads fail until it is back: scanning that fails open means nothing during exactly the outage an attacker would pick. clamd refuses a stream longer than its `StreamMaxLength` (25 MB by default) with an error, which also fails the upload; raise it in `clamd.conf` to at least your largest `max_size`. Laravel's config merge is shallow, so an `uploads` array you publish replaces the default one; anything you leave out falls back to the built-in defaults.
+When clamd is unreachable, the scanner throws, so uploads fail until clamd is back. A scanner that fails open protects nothing during an outage.
+
+clamd refuses a stream longer than its `StreamMaxLength` (25 MB by default) with an error, and that also fails the upload. Raise it in `clamd.conf` to at least your largest `max_size`.
+
+Laravel's config merge is shallow. An `uploads` array that you publish replaces the default one. Anything you leave out falls back to the built-in defaults.
 
 ![An upload refused: a Word file that contains a macro, with the notification explaining why](docs/images/upload-refused.png)
 
@@ -410,19 +447,19 @@ MediaPicker::make('report_id')->documents()->folder($reports);   // only this fo
 MediaPicker::make('note_id')->documents()->allowRestricted();    // intranet: offer restricted folders too
 ```
 
-`MediaPicker` extends Filament's `Select`, so `->label()`, `->required()`, `->helperText()`, `->hint()`, `->live()`, `->maxItems()` and the other `Select` methods work as usual.
+`MediaPicker` extends Filament's `Select`. So `->label()`, `->required()`, `->helperText()`, `->hint()`, `->live()`, `->maxItems()` and the other `Select` methods work as usual.
 
 ![The picker open: the chosen image on top, a search box and matching assets with thumbnails](docs/images/picker.png)
 
-- **Kinds.** A field offers images unless you say otherwise, so a field written before file kinds existed behaves as before, and a "hero image" field is never handed a PDF. `->kinds([])` falls back to images, never to everything. The kinds apply to the options, to the search and to the inline upload, and a saved value is checked against them too.
-- **Options** are the newest 50 selectable assets of those kinds. Typing searches filename, title and alt text and returns up to 50 matches. An image option reads "filename — alt text"; any other kind reads "title — Kind". When folders are on, the folder path is added ("in Publications / Annual reports") so two files with the same name are told apart.
-- **Expired assets are not offered.** Choosing is where a new usage starts, and a lapsed licence is what expiry exists to stop. If a record already holds an asset that has since expired, it still shows, labelled "Licence expired".
-- **`->folder($folder)`** takes a `MediaFolder` or its uuid. It offers only that folder and the folders below it, and an inline upload is filed there. A uuid that matches no folder offers nothing, never the whole library. It is ignored when `folders.enabled` is `false`.
-- **Folder access applies.** The picker only ever offers assets the signed-in user may browse, so a file in a members-only folder they are not in is not in the options, the search results or the Livewire payload. A saved value is checked again on the server, so a hand-made request cannot select a file the picker would not have offered.
-- **Restricted folders are hidden by default**, even from people who can open them, because a restricted file cannot be shown on a public page ([Folder access](#files-in-restricted-folders-and-public-pages)). `->allowRestricted()` offers them, for intranet sites and back-office fields.
-- **Upload new** (the button at the end of the field) opens the same dialog as the library, requires alt text for an image or a title for anything else, goes through the same upload guard and audited path, and selects the new asset. It accepts only the field's kinds. It is visible only to users who may manage the folder the upload would go to, and the gate is checked again when the dialog is submitted. Wait for the file to finish uploading before you submit.
-- **Thumbnails** are off by default. They turn every option into HTML: an image gets a 48px crop, a PDF its first page when [thumbnails are available](#previews), anything else the kind's icon. The plain list is the cheapest thing for a screen reader and a slow connection.
-- **Accessibility.** The picker is a standard searchable `Select`, so it has Filament's keyboard and screen-reader behaviour. The library does not ship a bespoke widget to keep conformant.
+- **Kinds.** A field offers images unless you say otherwise. So a field written before file kinds existed behaves as before, and a "hero image" field is never given a PDF. `->kinds([])` falls back to images, never to everything. The kinds apply to the options, the search and the inline upload. The library also checks a saved value against them.
+- **Options** are the newest 50 selectable assets of those kinds. Typing searches filename, title and alt text and returns up to 50 matches. An image option shows the filename and the alt text. Any other kind shows the title and the kind. When folders are on, the option also shows the folder path (for example "in Publications / Annual reports"), so you can tell two files with the same name apart.
+- **Expired assets are not offered.** Choosing an asset starts a new usage, and expiry exists to stop that for a lapsed licence. If a record already holds an asset that has since expired, it still shows, labelled "Licence expired".
+- **`->folder($folder)`** takes a `MediaFolder` or its uuid. It offers only that folder and the folders below it, and an inline upload goes into that folder. A uuid that matches no folder offers nothing, never the whole library. The picker ignores it when `folders.enabled` is `false`.
+- **Folder access applies.** The picker only offers assets that the signed-in user may browse. A file in a members-only folder that the user is not in does not appear in the options, the search results or the Livewire payload. The server checks a saved value again, so a hand-made request cannot select a file the picker would not have offered.
+- **Restricted folders are hidden by default**, even from people who can open them. A restricted file cannot be shown on a public page ([Folder access](#files-in-restricted-folders-and-public-pages)). `->allowRestricted()` offers them, for intranet sites and back-office fields.
+- **Upload new** (the button at the end of the field) opens the same dialog as the library. It requires alt text for an image or a title for anything else. It goes through the same upload guard and audited path, and it selects the new asset. It accepts only the field's kinds. Only users who may manage the target folder see it, and the gate is checked again when the dialog is submitted. Wait for the file to finish uploading before you submit.
+- **Thumbnails** are off by default. They turn every option into HTML. An image gets a 48px crop. A PDF gets its first page when [thumbnails are available](#previews). Anything else gets the kind's icon. The plain list is the cheapest for a screen reader and a slow connection.
+- **Accessibility.** The picker is a standard searchable `Select`, so it has Filament's keyboard and screen-reader behaviour. The library does not ship its own widget.
 
 ![The documents picker: only documents are offered, searched for "annual", with the folder each one lives in](docs/images/picker-documents.png)
 
@@ -432,7 +469,7 @@ MediaPicker::make('note_id')->documents()->allowRestricted();    // intranet: of
 
 ## Where an asset is used
 
-The library blocks deletion, counts "still used" licences and lists usages on the asset page. To do this it asks a `UsageResolver`. The default resolver reads the rows that `UsageRecorder` writes:
+The library blocks deletion, counts "still used" licences and lists usages on the asset page. To do this, it asks a `UsageResolver`. The default resolver reads the rows that `UsageRecorder` writes:
 
 ```php
 use Banyan\FilamentMediaLibrary\Usage\UsageRecorder;
@@ -449,7 +486,7 @@ $recorder->sync($post, 'hero', [$post->hero_id], 'en');
 $recorder->forget($post);
 ```
 
-`sync()` replaces the assets one field of one model (and one locale) uses. `forget()` drops everything a model uses. The model must be saved and have an int or string key; otherwise `InvalidArgumentException`. Model events do not fire for query-builder updates or `insert()`, so a bulk import has to call `sync()` itself. The guide shows a reusable trait, a backfill, and the details.
+`sync()` replaces the assets that one field of one model (and one locale) uses. `forget()` drops everything a model uses. The model must be saved and have an int or string key, or you get an `InvalidArgumentException`. Model events do not fire for query-builder updates or `insert()`, so a bulk import must call `sync()` itself. The guide shows a reusable trait, a backfill, and the details.
 
 If your app already knows its references, bind your own `Banyan\FilamentMediaLibrary\Contracts\UsageResolver` in a service provider. It has four methods:
 
@@ -468,7 +505,7 @@ interface UsageResolver
 }
 ```
 
-A short example that reads an `article_media` pivot table directly, and links each usage to its edit page:
+This short example reads an `article_media` pivot table directly and links each usage to its edit page:
 
 ```php
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
@@ -520,7 +557,7 @@ final class ArticleUsageResolver implements UsageResolver
 $this->app->singleton(UsageResolver::class, ArticleUsageResolver::class);
 ```
 
-"Used" must mean **live**. A usage whose owner has been deleted has to stop counting, or a safe delete is refused and a licence report raises a false alarm.
+"Used" must mean **live**. If the owner of a usage has been deleted, that usage must stop counting. Otherwise a safe delete is refused and a licence report raises a false alarm.
 
 ## Showing an image
 
@@ -542,9 +579,9 @@ $renditions->url($asset);                         // the original bytes
 | one dimension only | Scaled to that size, never upscaled (always `contain`) |
 | neither | The original file, untouched |
 
-Sizes are clamped to `renditions.max_dimension` (default 4096). The output keeps the original format (a JPEG stays a JPEG). Lossy formats use `renditions.quality`.
+The library limits sizes to `renditions.max_dimension` (default 4096). The output keeps the original format, so a JPEG stays a JPEG. Lossy formats use `renditions.quality`.
 
-A srcset from three calls:
+You can build a srcset from three calls:
 
 ```blade
 <img
@@ -557,15 +594,15 @@ A srcset from three calls:
 
 ![The public article: a 1200x630 hero cropped around its focal point, and a gallery of 400x300 crops](docs/images/front-end.png)
 
-**The URL is signed.** The route `media/{uuid}/render` (named `media-library.render`, both configurable) uses Laravel's `signed` middleware, because its query string is an instruction to spend CPU and disk. It has no session and no cookies. A request with a missing or altered signature gets `403`. The signature does not expire, so a URL stays valid for as long as `APP_KEY` does.
+**The URL is signed.** The route `media/{uuid}/render` (named `media-library.render`, both configurable) uses Laravel's `signed` middleware. Its query string tells the server to spend CPU and disk, so only signed requests are allowed. The route has no session and no cookies. A request with a missing or altered signature gets `403`. The signature does not expire, so a URL stays valid for as long as `APP_KEY` stays the same.
 
-**Caching and versioning.** The first request makes the rendition around the focal point and stores it on the disk. Every later request is a disk read. The response carries `Cache-Control: public, max-age=31536000, immutable`. The URL includes the current version and the focal point, so replacing the file or moving the focal point gives a **new** URL. Browsers and CDNs never show the old pixels. Cache the URLs freely, in your HTML cache too.
+**Caching and versioning.** The first request makes the rendition around the focal point and stores it on the disk. Every later request is a disk read. The response carries `Cache-Control: public, max-age=31536000, immutable`. The URL includes the current version and the focal point. So when you replace the file or move the focal point, you get a **new** URL, and browsers and CDNs never show the old pixels. You can cache the URLs freely, including in your HTML cache.
 
-**Tables.** In a Filament table, `MediaThumbnailColumn::make('hero_id')` shows the thumbnail of an asset id (a list of ids shows each). `->thumbnailSize(96, 64)` changes the crop; the default is 80 by 80.
+**Tables.** In a Filament table, `MediaThumbnailColumn::make('hero_id')` shows the thumbnail of an asset id (a list of ids shows each one). `->thumbnailSize(96, 64)` changes the crop. The default is 80 by 80.
 
 ## Delivering files
 
-Images are served as before: `$asset->url($w, $h, $fit)` returns a signed rendition ([Showing an image](#showing-an-image)). Every other file, and the original of an image, is served by one signed **file route**:
+`$asset->url($w, $h, $fit)` returns a signed rendition for an image ([Showing an image](#showing-an-image)). One signed **file route** serves every other file, and the original of an image:
 
 ```php
 $asset->fileUrl();       // inline for an image, PDF, video and audio; an attachment for everything else
@@ -577,16 +614,16 @@ $asset->downloadUrl();   // always an attachment
 <video controls src="{{ $asset->fileUrl() }}"></video>
 ```
 
-The route is `GET /media/{uuid}/file` (named `media-library.file`; change both in `delivery.file_route`, keeping `{uuid}`). It has the `signed` middleware and no session, so it is cacheable. The URL carries the current version and the `download` flag inside the signature, so a link cannot be flipped between inline and attachment by editing it, and a replaced file is a new address that no cache serves stale. An unsigned or altered request gets `403`; an unknown asset or a missing file gets `404`.
+The route is `GET /media/{uuid}/file` (named `media-library.file`). Change both in `delivery.file_route`, and keep `{uuid}`. The route has the `signed` middleware and no session, so it is cacheable. The signature covers the current version and the `download` flag. So nobody can switch a link between inline and attachment by editing it, and a replaced file gets a new address that no cache serves stale. An unsigned or altered request gets `403`. An unknown asset or a missing file gets `404`.
 
-What the response always carries:
+The response always carries these headers:
 
-- `Content-Type` is the type detected when the file was uploaded and stored with the asset, never one guessed from the request.
-- `X-Content-Type-Options: nosniff`, so a browser cannot decide a stored file is something else.
-- `Content-Disposition` is `inline` for images, PDFs, video and audio, and `attachment` for every other kind (or when you ask for `downloadUrl()`). The suggested filename is the asset's title plus the stored extension ("Annual report 2025.pdf"), or the stored filename when there is no title. Slashes, quotes, control characters, `%`, `:`, `*`, `?`, `<`, `>` and `|` are replaced, it is cut at 150 characters, and an RFC 6266 `filename*` carries the non-ASCII name.
+- `Content-Type` is the type detected at upload and stored with the asset. The library never guesses it from the request.
+- `X-Content-Type-Options: nosniff`, so a browser cannot treat a stored file as another type.
+- `Content-Disposition` is `inline` for images, PDFs, video and audio. It is `attachment` for every other kind, or when you ask for `downloadUrl()`. The suggested filename is the asset's title plus the stored extension ("Annual report 2025.pdf"). If there is no title, it is the stored filename. The library replaces slashes, quotes, control characters, `%`, `:`, `*`, `?`, `<`, `>` and `|`, and cuts the name at 150 characters. An RFC 6266 `filename*` carries a non-ASCII name.
 - `Cache-Control: public, max-age=31536000, immutable`.
 
-**Ranges and seeking.** Video and audio need `Range` requests to seek, and what happens depends on the disk:
+**Ranges and seeking.** Video and audio need `Range` requests to seek. What happens depends on the disk:
 
 | Disk | What the route does |
 | --- | --- |
@@ -594,11 +631,11 @@ What the response always carries:
 | One with temporary URLs (S3, R2) | A download or a top-level visit gets a `302` to a short-lived provider URL (`delivery.temporary_url_minutes`, default 5) with the content type and disposition set on it, and the provider does the ranging. An **embed** (the PDF preview, `<video>`, `<audio>`, which browsers mark with `Sec-Fetch-Dest`) is streamed from your own origin with `Range` support instead, so a strict CSP (`frame-src 'self'`, `media-src 'self'`) does not block it. `delivery.redirect_to_storage`: `downloads` (default), `always` or `never` |
 | Anything else | Streams the whole file. There is no `Range` support, so video plays but does not seek |
 
-A members-only or password-protected file is served from different, session-checked routes with short-lived addresses ([Folder access](#files-in-restricted-folders-and-public-pages)). `fileUrl()` and `downloadUrl()` pick the right one for you, and throw `AccessDenied` for a restricted file the signed-in user may not browse, so an empty `src` can never be printed by accident. Check `$asset->isDeliverable()` first when you cannot be sure.
+A members-only or password-protected file is served from different routes, which check the session and use short-lived addresses ([Folder access](#files-in-restricted-folders-and-public-pages)). `fileUrl()` and `downloadUrl()` pick the right route for you. They throw `AccessDenied` for a restricted file that the signed-in user may not browse, so an empty `src` is never printed by accident. Check `$asset->isDeliverable()` first when you are not sure.
 
 ## Previews
 
-The asset page shows each kind the way a browser can do natively. There is no conversion, no queue and no extra JavaScript, and the previews use classes rather than inline styles.
+The asset page shows each kind the way a browser can show it natively. There is no conversion, no queue and no extra JavaScript. The previews use classes, not inline styles.
 
 | Kind | What the asset page shows |
 | --- | --- |
@@ -610,26 +647,30 @@ The asset page shows each kind the way a browser can do natively. There is no co
 
 ![Audio: the player and a transcript, with the title, folder, duration and details beside it](docs/images/audio.png)
 
-**Captions and transcripts.** On a video's asset page, **More, Captions** attaches a WebVTT file (`.vtt`) that is already in the library as a document. On a video or audio file, **More, Transcript** stores the words spoken as plain text, shown in a collapsible block under the player. In code:
+**Captions and transcripts.** On a video's asset page, **More, Captions** attaches a WebVTT file (`.vtt`) that is already in the library as a document. On a video or audio file, **More, Transcript** stores the spoken words as plain text. The text shows in a collapsible block under the player. In code:
 
 ```php
 $media->setCaptions($video, $vttAsset, (string) $user->id);   // null removes them; video only
 $media->setTranscript($audio, $text, (string) $user->id);     // null removes it; video and audio only
 ```
 
-Both throw `CompanionNotAllowed` for the wrong kind, and `setCaptions()` also if the file is not WebVTT. The events say whether a transcript exists, never what it says. `$video->captionsUrl()` returns the captions file's address, or `null` when there are none or the signed-in user may not have them.
+Both throw `CompanionNotAllowed` for the wrong kind. `setCaptions()` also throws it if the file is not WebVTT. The events say whether a transcript exists, never what it says. `$video->captionsUrl()` returns the address of the captions file. It returns `null` when there are no captions or the signed-in user may not have them.
 
 ![A video's asset page: the player with a time bar, captions attached, and the duration](docs/images/video.png)
 
-**Page count and duration.** The page count of a PDF is read from the file when it is uploaded, by counting page objects, so a PDF that keeps its pages inside compressed object streams shows none. The duration of video and audio is **not** read, because that needs ffmpeg or getID3 and the package depends on neither. `duration_seconds` stays null unless your app sets it. There is no video poster frame either.
+**Page count and duration.** The library reads a PDF's page count at upload by counting page objects. A PDF that keeps its pages inside compressed object streams shows no count. The library does **not** read the duration of video and audio, because that needs ffmpeg or getID3 and the package depends on neither. `duration_seconds` stays null unless your app sets it. There is no video poster frame either.
 
-**PDF thumbnails.** In the grid and the picker a PDF shows its first page when the `PdfThumbnailer` contract has an implementation that works on your server, and a kind icon when it does not. The default implementation uses `ext-imagick`, which needs Ghostscript behind it:
+**PDF thumbnails.** In the grid and the picker, a PDF shows its first page when the `PdfThumbnailer` contract has an implementation that works on your server. If not, it shows a kind icon. The default implementation uses `ext-imagick`, which needs Ghostscript:
 
 ```bash
 apt install ghostscript php-imagick   # then restart PHP-FPM
 ```
 
-If Imagick is not loaded, or its `PDF` format is not readable, nothing breaks: the card shows the icon. Many Linux distributions also disable the PDF coder in ImageMagick's `policy.xml`; allow reading PDF there. Thumbnails are made on first request at 160, 320 or 640 pixels wide, cached next to the renditions (the version is in the path, so a replaced PDF gets a new one), and served by the rendition route. Any failure on a malformed PDF costs the card an icon, never a 500. To use another renderer (a service, `pdftoppm`), bind your own:
+If Imagick is not loaded, or its `PDF` format is not readable, nothing breaks. The card shows the icon. Many Linux distributions disable the PDF coder in ImageMagick's `policy.xml`, so allow reading PDF there.
+
+Thumbnails are made on the first request at 160, 320 or 640 pixels wide. They are cached next to the renditions (the version is in the path, so a replaced PDF gets a new one) and served by the rendition route. A malformed PDF costs the card an icon, never a 500.
+
+To use another renderer (a service, `pdftoppm`), bind your own:
 
 ```php
 use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
@@ -637,11 +678,11 @@ use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
 $this->app->singleton(PdfThumbnailer::class, MyPdfThumbnailer::class);
 ```
 
-It has two methods: `available(): bool`, and `thumbnail(string $pdfBinary, int $width): ?string` which returns PNG bytes or `null`.
+It has two methods: `available(): bool`, and `thumbnail(string $pdfBinary, int $width): ?string`, which returns PNG bytes or `null`.
 
 ## The file component
 
-`<x-media-library::file>` renders an asset the way its kind wants, so a template does not need a branch per kind:
+`<x-media-library::file>` renders an asset the way its kind needs, so a template does not need a branch for each kind:
 
 ```blade
 <x-media-library::file :asset="$article->report" />
@@ -656,32 +697,32 @@ It has two methods: `available(): bool`, and `thumbnail(string $pdfBinary, int $
 | Video | `<video controls preload="metadata">`, a captions `<track>` when there is one, and a download link as the fallback inside it |
 | Audio | `<audio controls preload="metadata">` with a download link as the fallback |
 
-Video and audio with a transcript also get a `<details>` block holding it. The link text is title, format and size, which is the WCAG-friendly way to name a document link. Extra attributes (`class`, `id`, `data-*`) go onto the element, and `width`, `height` and `sizes` apply to what they make sense for.
+Video and audio with a transcript also get a `<details>` block that holds it. The link text is the title, format and size. This is the WCAG-friendly way to name a document link. Extra attributes (`class`, `id`, `data-*`) go onto the element. `width`, `height` and `sizes` apply where they make sense.
 
-A file in a members-only or password-protected folder is not for the public. When the visitor may not have it, the component prints a lock icon with the label "Restricted file", and nothing else: no URL, title or filename. A signed-in user who may browse the folder gets the file.
+A file in a members-only or password-protected folder is not for the public. When the visitor may not have it, the component prints a lock icon with the label "Restricted file" and nothing else. It prints no URL, title or filename. A signed-in user who may browse the folder gets the file.
 
 ## Folders
 
-Folders organise a large library, and are on by default. Set `media-library.folders.enabled` to `false` for a flat library: all folder UI is hidden, and every asset reads as being at the root.
+Folders help you organise a large library. They are on by default. Set `media-library.folders.enabled` to `false` for a flat library. Then all folder UI is hidden, and every asset reads as being at the root.
 
 ![The Publications folder open: the tree with its sub-folders expanded, breadcrumbs and folder tiles](docs/images/folders.png)
 
-- **Tree and navigation.** The library page has a collapsible, keyboard-navigable tree (`role="tree"`) and breadcrumbs. The current folder is also the folder that **Upload files** and **New folder** act on.
-- **Folder actions.** **New folder** creates one inside the open folder. The **Folder** menu holds **Access…**, **Rename folder**, **Move folder** and **Delete folder**.
-- **Moving files.** Tick cards in the grid and use **Move to folder…**, or open an asset and use **More, Move to folder**. Moving an asset keeps its id, its uuid and its usages. Files that the user may not change are left where they are, with a notice.
-- **Deleting a folder** is allowed only when it is empty. Otherwise the action offers **Move its contents to the parent folder first**, which lifts the sub-folders and files up one level and then deletes the empty folder, all or nothing. It never cascades and never deletes a file.
-- **Search** inside a folder covers that folder and everything below it, and **Search the whole library** widens it. The same goes for the tag and licence filters.
+- **Tree and navigation.** The library page has a collapsible tree that you can use with the keyboard (`role="tree"`), and breadcrumbs. The current folder is also the folder that **Upload files** and **New folder** act on.
+- **Folder actions.** **New folder** creates a folder inside the open folder. The **Folder** menu holds **Access…**, **Rename folder**, **Move folder** and **Delete folder**.
+- **Moving files.** Tick cards in the grid and use **Move to folder…**, or open an asset and use **More, Move to folder**. Moving an asset keeps its id, its uuid and its usages. Files that the user may not change stay where they are, and a notice says so.
+- **Deleting a folder** is allowed only when it is empty. If it is not empty, the action offers **Move its contents to the parent folder first**. This lifts the sub-folders and files up one level, then deletes the empty folder, all or nothing. It never cascades and never deletes a file.
+- **Search** inside a folder covers that folder and everything below it. **Search the whole library** widens it. The tag and licence filters work the same way.
 
-The rules, enforced in `MediaFolderService`, whatever surface asks:
+`MediaFolderService` enforces these rules, whatever asks:
 
-- A name is 1 to 120 characters, without a slash or a control character, and unique among its siblings, compared case-insensitively.
-- A folder cannot be moved into its own subtree (`FolderCycle`), and nesting is capped by `folders.max_depth` (default 8, `FolderTooDeep`).
-- Renaming or moving to a name a sibling already has is refused (`FolderNameTaken`).
-- Each folder keeps a materialised `path` (`/12/45/`) and `depth`, so a whole subtree is one query. Only the service writes them; never set `parent_id` by hand.
+- A name is 1 to 120 characters, with no slash or control character. It must be unique among its siblings, compared case-insensitively.
+- A folder cannot be moved into its own subtree (`FolderCycle`). `folders.max_depth` limits nesting (default 8, `FolderTooDeep`).
+- Renaming or moving a folder to a name that a sibling already has is refused (`FolderNameTaken`).
+- Each folder keeps a materialised `path` (`/12/45/`) and `depth`, so a whole subtree is one query. Only the service writes them. Never set `parent_id` by hand.
 
 ### The service
 
-All folder writes go through `MediaFolderService`, one transaction each, with events dispatched before the commit, like `MediaGovernanceService`. Like it, **it does not check the gate**: the pages and the picker check access before they call it, and code that calls it on a user's behalf must do the same ([Folder access](#folder-access)).
+All folder writes go through `MediaFolderService`. Each write is one transaction, and events are dispatched before the commit, as in `MediaGovernanceService`. Like it, **it does not check the gate**. The pages and the picker check access before they call it. Code that calls it on a user's behalf must do the same ([Folder access](#folder-access)).
 
 ```php
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
@@ -709,11 +750,11 @@ $media->upload($bytes, 'report.pdf', 'application/pdf', '', (string) $user->id, 
 | `moveAssets(array $assets, ?MediaFolder $to, string $actorId)` | `int` | none (assets already there are skipped) |
 | `setAccess(...)`, `addMember(...)`, `removeMember(...)` | | See [Folder access](#folder-access) |
 
-`$siteId` tags a top-level folder with a site, for hosts with several sites (see the Banyan adapter's README); a standalone install never uses it. To tell the page which site the editor is working on, call `MediaLibraryPage::currentSiteUsing(fn (): ?int => ...)` once; that site's top-level folders then list first.
+`$siteId` tags a top-level folder with a site, for hosts with several sites (see the Banyan adapter's README). A standalone install never uses it. To tell the page which site the editor is working on, call `MediaLibraryPage::currentSiteUsing(fn (): ?int => ...)` once. That site's top-level folders then list first.
 
 ### Events
 
-Each change dispatches an event: `FolderCreated`, `FolderRenamed`, `FolderMoved`, `FolderDeleted` and, for assets, `AssetMoved`. They are `MediaFolderEvent`s (or a `MediaAssetEvent`) and carry ids and counts only, never a folder name. The full table is under [Audit log: events](#audit-log-events).
+Each change dispatches an event: `FolderCreated`, `FolderRenamed`, `FolderMoved`, `FolderDeleted` and, for assets, `AssetMoved`. They are `MediaFolderEvent`s (or a `MediaAssetEvent`). They carry ids and counts only, never a folder name. The full table is under [Audit log: events](#audit-log-events).
 
 ### From your own code
 
@@ -753,45 +794,51 @@ A member has one of two roles: `view` (browse and pick) or `manage` (also upload
 
 ### Access only narrows down the tree
 
-A folder's *effective* access is that of the nearest ancestor (or itself) that is not `inherit`, which is what `$folder->effectiveAccess()` reports. What is **enforced** is stricter: **a user must pass every folder on the path from the top.** A `shared` sub-folder of a members-only folder therefore stays members-only. A child can never re-publish its parent's contents, and the parent's name never appears in a child's breadcrumb or picker label for someone who may not open the parent. The access dialog says so: "A sub-folder can be stricter than the folder above it, never more open." `$folder->isRestricted()` is true if any folder on the path is members-only or password protected.
+A folder's *effective* access is the access of the nearest ancestor (or the folder itself) that is not `inherit`. `$folder->effectiveAccess()` reports it.
+
+What the library **enforces** is stricter: **a user must pass every folder on the path from the top.** So a `shared` sub-folder of a members-only folder stays members-only. A child can never make its parent's contents public. The parent's name also never appears in a child's breadcrumb or picker label for someone who may not open the parent. The access dialog says: "A sub-folder can be stricter than the folder above it, never more open." `$folder->isRestricted()` is true if any folder on the path is members-only or password protected.
 
 ### Who is exempt
 
 - **The folder's owner and `media.manage-all`** open a members-only folder without being members.
-- **Neither needs to unlock a password folder.** The owner chose the password, and the administrator can reset it, so typing it would protect nothing. Everyone else, `media.manage` holders included, must unlock.
-- **Only the owner or `media.manage-all` may change a folder's access, password or members**, and only while they could manage it anyway.
+- **Neither needs to unlock a password folder.** The owner chose the password, and the administrator can reset it, so typing it would protect nothing. Everyone else must unlock, including `media.manage` holders.
+- **Only the owner or `media.manage-all` may change a folder's access, password or members.** They can do this only while they could manage the folder anyway.
 - **The password does not bypass the Gate.** A user still needs `media.view`.
 
 ### Password folders: unlock and throttle
 
-Set a password of at least 8 characters in the access dialog. It is stored with `Hash::make()`, never shown again and never put in an event, log or message. To keep the current one, leave the field empty; setting a new one **locks the folder again for everyone**, and so does leaving the mode and coming back.
+Set a password of at least 8 characters in the access dialog. The library stores it with `Hash::make()`. It never shows the password again, and never puts it in an event, log or message. To keep the current password, leave the field empty. Setting a new password **locks the folder again for everyone**. So does leaving the mode and coming back.
 
-A person who has not unlocked the folder sees it in the tree with a lock and a **Locked** tile, but no count, no files and no sub-folders, and a panel with an **Unlock** button.
+A person who has not unlocked the folder sees it in the tree with a lock and a **Locked** tile. They see no count, no files and no sub-folders, and a panel with an **Unlock** button.
 
 ![A password folder waiting to be unlocked: the password prompt](docs/images/folder-unlock.png)
 
-- **The unlock lasts `folders.unlock_minutes`** (default 30) and covers the folder's whole subtree. It is kept server-side in the session as an expiry per folder, never in a cookie the client can forge, and is tied to the current password.
-- **Five wrong attempts per user per folder in 15 minutes are throttled** (Laravel's `RateLimiter`). After that even the right password is refused until the window passes, and the dialog says how many minutes to wait.
-- **Failures are audited.** Each wrong attempt, and each throttled one, dispatches `FolderUnlockFailed` with the number of attempts, and never the password. A successful unlock is not an event, to avoid noise.
+- **The unlock lasts `folders.unlock_minutes`** (default 30) and covers the folder's whole subtree. It is kept on the server, in the session, as an expiry per folder. It is never in a cookie the client can forge, and it is tied to the current password.
+- **Five wrong attempts per user per folder in 15 minutes are throttled** (Laravel's `RateLimiter`). After that, even the right password is refused until the window passes. The dialog says how many minutes to wait.
+- **Failures are audited.** Each wrong attempt, and each throttled one, dispatches `FolderUnlockFailed` with the number of attempts and never the password. A successful unlock is not an event, to avoid noise.
 
 ### What a person without access sees
 
-A restricted folder is **absent** for a user who may not open it: not greyed out, not "access denied", but not in the payload at all. It is not in the tree, the folder tiles, the breadcrumbs, search results, the picker options or the asset page, nor in the Livewire payload and HTML that carry them (the package's tests search the page's HTML and its whole Livewire snapshot for the folder's name, its files and their ids). A count never includes a file or folder they cannot see. A password folder is the one exception: it is *listed* (with a lock) so a person who knows the password can find it, but its contents are not.
+A restricted folder is **absent** for a user who may not open it. It is not greyed out and it does not say "access denied". It is not in the payload at all. It is not in the tree, the folder tiles, the breadcrumbs, the search results, the picker options or the asset page. It is also not in the Livewire payload and HTML that carry them. (The package's tests search the page's HTML and its whole Livewire snapshot for the folder's name, its files and their ids.) A count never includes a file or folder the user cannot see.
+
+A password folder is the one exception. It is *listed* (with a lock) so a person who knows the password can find it, but its contents are not.
 
 ![A member who is not in the Council papers folder: the folder is not in the tree or the tiles, and the Press embargo folder shows as Locked](docs/images/non-member.png)
 
-An asset's page (`/admin/media/{uuid}`) is a 404 for someone who may not see it, whether it exists or not, except that a file in a password folder the person could unlock sends them to that folder's unlock form. Every refusal in the delivery routes is a 404, never a 403, so nothing confirms that a file exists.
+An asset's page (`/admin/media/{uuid}`) is a 404 for someone who may not see it, whether it exists or not. There is one exception. If the file is in a password folder that the person could unlock, they go to that folder's unlock form. Every refusal in the delivery routes is a 404, never a 403, so nothing confirms that a file exists.
 
 ### Files in restricted folders, and public pages
 
-Ordinary file and rendition URLs are signed and permanent, so anyone holding one can open it. That cannot be true of a member's file. For an asset whose path holds a members-only or password folder:
+Ordinary file and rendition URLs are signed and permanent, so anyone who holds one can open it. That cannot be true for a member's file. For an asset whose path holds a members-only or password folder:
 
-- `fileUrl()`, `downloadUrl()` and `url()` return a **temporary** signed URL (`delivery.restricted_url_minutes`, default 10), issued only to a user who may browse the folder. For anyone else they throw `AccessDenied`.
-- The URL points at **different routes**, `restricted-file` and `restricted-render`, which run inside your `web` middleware (`delivery.restricted_middleware`) because they need the visitor's session. On every request they check, again, that the signed-in user may browse the folder. A leaked URL fails for a logged-out visitor, and for the same person once their membership is removed or the folder is locked again.
-- The public routes answer **404** for a restricted file, so an old permanent address dies at the moment the file moves into a restricted folder.
+- `fileUrl()`, `downloadUrl()` and `url()` return a **temporary** signed URL (`delivery.restricted_url_minutes`, default 10). The library issues it only to a user who may browse the folder. For anyone else, these methods throw `AccessDenied`.
+- The URL points at **different routes**, `restricted-file` and `restricted-render`. They run inside your `web` middleware (`delivery.restricted_middleware`) because they need the visitor's session. On every request they check again that the signed-in user may browse the folder. A leaked URL fails for a logged-out visitor. It also fails for the same person once their membership is removed or the folder is locked again.
+- The public routes answer **404** for a restricted file. So an old permanent address stops working when the file moves into a restricted folder.
 - Restricted answers are `Cache-Control: private, no-store`.
 
-**The consequence: a restricted file cannot be used on a public page.** The picker hides restricted folders by default for that reason, and `<x-media-library::file>` prints a lock instead of a restricted file. To use restricted files on an intranet, where every visitor signs in, opt in with `->allowRestricted()` on the field. When an editor moves files that are still used on pages into a restricted folder, or restricts a folder that holds such files, the dialog warns how many are in use and asks for a confirmation (and the server checks the confirmation again); the move is allowed, but those pages lose the file.
+**A restricted file cannot be used on a public page.** For this reason, the picker hides restricted folders by default, and `<x-media-library::file>` prints a lock instead of a restricted file. To use restricted files on an intranet, where every visitor signs in, add `->allowRestricted()` to the field.
+
+An editor may move files that are still used on pages into a restricted folder. An editor may also restrict a folder that holds such files. In both cases the dialog warns how many files are in use and asks for a confirmation. The server checks the confirmation again. The move is allowed, but those pages lose the file.
 
 If you build a public page from assets yourself, select only what is safe to show:
 
@@ -820,13 +867,13 @@ $folders->removeMember($folder, $user->id, $actorId);
 $folders->setAccess($press, FolderAccessMode::Password, 'a-long-password', $actorId);
 ```
 
-`FolderAccess` is the one place a folder decision is made: the grid, the tree, the asset page, the picker, the file routes and `MediaAsset::visibleTo()` all ask it. Pass the user explicitly in jobs and console commands; without one it asks the signed-in user, and nobody signed in passes nothing. It is registered as a scoped binding that caches the folder table for one request, and the folder and member models clear that cache on every write.
+`FolderAccess` is the one place where the library decides folder access. The grid, the tree, the asset page, the picker, the file routes and `MediaAsset::visibleTo()` all ask it. In jobs and console commands, pass the user explicitly. Without a user, it asks the signed-in user, and if nobody is signed in, it passes nothing. It is registered as a scoped binding that caches the folder table for one request. The folder and member models clear that cache on every write.
 
-`MediaFolderService::setAccess()` throws `InvalidFolderAccess` for a short password, a password on a folder that is not password protected, or a password mode without a password. Members are kept when you switch modes and ignored unless the mode is `members`. Member ids are your user ids (an integer), and the member list in the dialog shows the user attribute named in `folders.member_label` (default `name`, falling back to `email`).
+`MediaFolderService::setAccess()` throws `InvalidFolderAccess` in these cases: a short password, a password on a folder that is not password protected, or a password mode without a password. Members are kept when you switch modes, and the library ignores them unless the mode is `members`. Member ids are your user ids (an integer). The member list in the dialog shows the user attribute named in `folders.member_label` (default `name`, falling back to `email`).
 
 ## Writing from code
 
-All writes go through `MediaGovernanceService`. Each runs in a transaction and announces itself with an event:
+All writes go through `MediaGovernanceService`. Each write runs in a transaction and announces itself with an event:
 
 ```php
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
@@ -855,17 +902,25 @@ $media->delete($asset, (string) $user->id);
 | `syncTags(MediaAsset $asset, array $names, string $actorId)` | `void` | none |
 | `delete(MediaAsset $asset, string $actorId)` | `void` | `AssetReferenced` |
 
-`$mimeType` is what the client claimed and is ignored: the type is detected from the bytes and that is what is stored. `$altText` is required for an image and may be empty for any other kind, which needs `$title` instead. `$folder` files the new asset in a folder (null is the library root). `$actorId` is your user's id as a string. It goes into the event. `updateDetails()` sets the licence expiry to exactly what you pass, so `null` clears it, and `$title` is left alone when null. `uploaded_by` on the asset is set only when it is numeric. A replacement keeps the asset's folder, title and captions.
+Notes on the arguments:
 
-These methods do not check the gate or folder access: if the call is made on behalf of a user, check `MediaLibraryGate::allowsManage()` and `app(FolderAccess::class)->canManage($folder)` yourself.
+- `$mimeType` is what the client claimed. The library ignores it, detects the type from the bytes and stores that.
+- `$altText` is required for an image. For any other kind it may be empty, and you pass `$title` instead.
+- `$folder` files the new asset in a folder. `null` is the library root.
+- `$actorId` is your user's id as a string. It goes into the event.
+- `updateDetails()` sets the licence expiry to exactly what you pass, so `null` clears it. It leaves `$title` alone when it is null.
+- `uploaded_by` on the asset is set only when the actor id is numeric.
+- A replacement keeps the asset's folder, title and captions.
+
+These methods do not check the gate or folder access. If you call them on behalf of a user, check `MediaLibraryGate::allowsManage()` and `app(FolderAccess::class)->canManage($folder)` yourself.
 
 ## Data model and querying from your code
 
-Read the tables freely from any controller, service, job or report. **Write only through `MediaGovernanceService`** ([Writing from code](#writing-from-code)): it keeps the asset/version invariant, removes files on rollback and dispatches the events your audit log and webhooks depend on.
+You can read the tables freely from any controller, service, job or report. **Write only through `MediaGovernanceService`** ([Writing from code](#writing-from-code)). It keeps the asset and version records consistent, removes files on rollback and dispatches the events that your audit log and webhooks depend on.
 
 ### Tables
 
-The names below are the defaults. Each one is configurable in `media-library.tables.*`; Banyan uses `cms_media_*`. In raw queries, read the name from `MediaConfig::table('assets')` and the others, never hard-code it.
+The names below are the defaults. Each one is configurable in `media-library.tables.*`. Banyan uses `cms_media_*`. In raw queries, read the name from `MediaConfig::table('assets')` and the others. Never hard-code it.
 
 ```mermaid
 erDiagram
@@ -880,7 +935,7 @@ erDiagram
     media_assets ||--o| media_assets : "captions_asset_id"
 ```
 
-**`media_assets`**: one row per file (an image, document, video, audio file or archive), the thing you reference from your own tables.
+**`media_assets`**: one row per file (an image, document, video, audio file or archive). This is the row you reference from your own tables.
 
 | Column | Type | Meaning |
 | --- | --- | --- |
@@ -904,7 +959,7 @@ erDiagram
 | `uploaded_by` | bigint, nullable | Your user id, when it was numeric |
 | `created_at`, `updated_at` | timestamp | |
 
-**`media_versions`**: every file an asset has had; a replacement adds a row and the old file is kept.
+**`media_versions`**: every file an asset has had. A replacement adds a row and the old file is kept.
 
 | Column | Meaning |
 | --- | --- |
@@ -913,7 +968,7 @@ erDiagram
 | `kind` | The kind of that file, so a replacement can never change an asset's kind |
 | `uploaded_by`, `created_at` | Who uploaded it and when (no `updated_at`) |
 
-**`media_tags`** (`id`, `name` unique, lower-cased) and **`media_asset_tag`** (`media_asset_id`, `media_tag_id`): flat, editor-authored tags.
+**`media_tags`** (`id`, `name` unique, lower-cased) and **`media_asset_tag`** (`media_asset_id`, `media_tag_id`): flat tags that editors write.
 
 **`media_folders`**: the folder tree. Write it only through `MediaFolderService`.
 
@@ -937,7 +992,7 @@ erDiagram
 | `user_id` | Your user id |
 | `role` | `view` (browse and pick) or `manage` (also upload, edit and delete). Primary key is (`media_folder_id`, `user_id`) |
 
-**`media_usages`**: what the default resolver counts as "used". It is written by `UsageRecorder`.
+**`media_usages`**: what the default resolver counts as "used". `UsageRecorder` writes it.
 
 | Column | Meaning |
 | --- | --- |
@@ -950,7 +1005,7 @@ If you bound your own `UsageResolver`, your usages live wherever your resolver r
 
 ### Models
 
-All are in `Banyan\FilamentMediaLibrary\Models` and read the configured table names.
+All models are in `Banyan\FilamentMediaLibrary\Models` and read the configured table names.
 
 | Model | Relations | Helpers |
 | --- | --- | --- |
@@ -986,7 +1041,7 @@ Query scopes on `MediaAsset`:
 | `Usage\UsageRecorder` | `sync($model, 'field', [$ids])` and `forget($model)`, to keep usage correct |
 | `Governance\MediaExpiryReport` | `summary()` gives the expired and expiring counts, and how many of them are still used |
 | `Access\MediaLibraryGate` | `allowsBrowse()`, `allowsManage()`, `allowsManageAll()` and `actorId()` before acting on a user's behalf |
-| `Access\FolderAccess` | `canBrowse()`, `canManage()`, `canAdminister()`, `unlock()`, `isUnlocked()`, `isRestricted()`: the one place a folder decision is made ([Folder access](#folder-access)) |
+| `Access\FolderAccess` | `canBrowse()`, `canManage()`, `canAdminister()`, `unlock()`, `isUnlocked()`, `isRestricted()`: the one place where folder access is decided ([Folder access](#folder-access)) |
 | `Folders\MediaFolderService` | Every folder write: `create`, `rename`, `move`, `delete`, `moveAssets`, `setAccess`, `addMember`, `removeMember` ([Folders](#folders)) |
 | `Delivery\FileDelivery` | `url($asset, $download)`, `disposition($asset)`, `filename($asset)`: what the file route's addresses and headers are made of |
 | `Rendering\PdfThumbnailService` | `url($asset, $width)` gives a signed first-page thumbnail URL, or `null` when there is none |
@@ -1043,13 +1098,13 @@ $rows = DB::table('articles as a')
     ->get(['a.id', 'a.title', 'm.uuid', 'm.alt_text']);
 ```
 
-**Your own columns.** Store the asset id (`unsignedBigInteger('hero_id')->nullable()`, or a JSON list for a gallery). You may add a foreign key to `media_assets.id` with `nullOnDelete()`. The library refuses to delete an asset that is still used, so the key mainly protects you from bulk imports.
+**Your own columns.** Store the asset id (`unsignedBigInteger('hero_id')->nullable()`, or a JSON list for a gallery). You may add a foreign key to `media_assets.id` with `nullOnDelete()`. The library refuses to delete an asset that is still used. So the key mainly protects you from bulk imports.
 
 **Do not** update `media_assets`, `media_versions` or `media_folders` with `DB::table()->update()` or `$asset->save()`. That skips alt-text and title validation, the upload guard, the version history, rendition cache keys, the folder `path` and `depth` columns and the events. Use the services.
 
 ## Audit log: events
 
-Every change dispatches an event that implements `Banyan\FilamentMediaLibrary\Events\MediaEvent`. It has `name()`, `subjectType()`, `subjectId()`, `actorId()` and `payload()`. An event about one asset also implements `MediaAssetEvent` (with `assetId()`), and one about one folder implements `MediaFolderEvent` (with `folderId()`). `subjectType()` is `media_asset` or `media_folder`.
+Every change dispatches an event that implements `Banyan\FilamentMediaLibrary\Events\MediaEvent`. It has `name()`, `subjectType()`, `subjectId()`, `actorId()` and `payload()`. An event about one asset also implements `MediaAssetEvent` (with `assetId()`). An event about one folder implements `MediaFolderEvent` (with `folderId()`). `subjectType()` is `media_asset` or `media_folder`.
 
 | Event class | `name()` | Payload keys |
 | --- | --- | --- |
@@ -1070,9 +1125,9 @@ Every change dispatches an event that implements `Banyan\FilamentMediaLibrary\Ev
 | `FolderMembersChanged` | `media.folder.members_changed` | `folder_id`, `user_id`, `change` (`added`, `role_changed` or `removed`), `role` (null when removed), `members_count` |
 | `FolderUnlockFailed` | `media.folder.unlock_failed` | `folder_id`, `attempts` |
 
-Events are dispatched **inside the write's database transaction**. If a listener throws, the write is rolled back, so an audit log never describes a change that did not happen. Payloads carry ids, kinds, sizes, modes and flags. They never carry alt text, a title, a filename, a folder name or a password, which can name a person. A successful unlock is not an event; a failed one is.
+Events are dispatched **inside the write's database transaction**. If a listener throws, the write is rolled back. So an audit log never describes a change that did not happen. Payloads carry ids, kinds, sizes, modes and flags. They never carry alt text, a title, a filename, a folder name or a password, because these can name a person. A successful unlock is not an event. A failed one is.
 
-`AssetUploading` (see [Upload safety](#upload-safety)) is a hook that runs before a write, not an audit event.
+`AssetUploading` (see [Upload safety](#upload-safety)) is a hook that runs before a write. It is not an audit event.
 
 ```php
 use Banyan\FilamentMediaLibrary\Events\MediaEvent;
@@ -1089,18 +1144,20 @@ Event::listen(MediaEvent::class, function (MediaEvent $event): void {
 });
 ```
 
-Keep the log on the same database connection as the library, otherwise a failed insert cannot roll the change back. The example ships a ready listener, migration and a read-only Filament page ([`RecordMediaAudit`](examples/Articles/Listeners/RecordMediaAudit.php)); its table is keyed by asset, so it records the asset events and leaves the folder events to you.
+Keep the log on the same database connection as the library. Otherwise a failed insert cannot roll the change back.
+
+The example ships a ready listener, a migration and a read-only Filament page ([`RecordMediaAudit`](examples/Articles/Listeners/RecordMediaAudit.php)). Its table is keyed by asset, so it records the asset events and leaves the folder events to you.
 
 ![A read-only audit page built on the events: when, event name, actor, asset and payload](docs/images/audit-log.png)
 
 ## Licence expiry
 
-An asset may have a `license_expires_at`. Expiry is **computed when read**, not stored as a flag, so it is never stale.
+An asset may have a `license_expires_at`. The library computes expiry when you read it. It does not store a flag, so the result is never stale.
 
-- The library page shows a "Licence governance" banner when any licence has lapsed or lapses within `expiry_warning_days` (default 30). It also says how many expired assets are **still used**. **Review expired** and **Review upcoming** filter the grid.
+- The library page shows a "Licence governance" banner when any licence has lapsed or lapses within `expiry_warning_days` (default 30). The banner also says how many expired assets are **still used**. **Review expired** and **Review upcoming** filter the grid.
 - Cards show "Licence expired", or the date it expires.
 - The picker stops offering expired assets.
-- Expiry does **not** stop an image being served. A page that already uses the asset keeps working. The library tells people; it does not take images down.
+- Expiry does **not** stop an image being served. A page that already uses the asset keeps working. The library tells people. It does not take images down.
 
 ![The library filtered to expired licences: the banner counts one expired asset that is still used](docs/images/library-expiry.png)
 
@@ -1178,16 +1235,20 @@ Publish the config with `php artisan vendor:publish --tag=media-library-config`.
 | `navigation.group` | `null` | Navigation group: a string or a navigation-group enum |
 | `navigation.sort` | `20` | Sidebar order |
 
-Change table names before the first migration runs. Raise PHP's `upload_max_filesize` and `post_max_size`, and Livewire's temporary-upload limit in `config/livewire.php`, if you raise a `max_size`: the defaults allow a 500 MB video, which PHP's defaults do not. Laravel's config merge is shallow, so a nested array you publish (such as `uploads` or `delivery`) replaces the default one wholesale; copy the whole block from the package's config before you edit it. Where a key is missing the built-in default above still applies.
+Change table names before the first migration runs.
+
+If you raise a `max_size`, also raise PHP's `upload_max_filesize` and `post_max_size`, and Livewire's temporary-upload limit in `config/livewire.php`. The defaults allow a 500 MB video, which PHP's defaults do not.
+
+Laravel's config merge is shallow. A nested array that you publish (such as `uploads` or `delivery`) replaces the default one completely. Copy the whole block from the package's config before you edit it. Where a key is missing, the built-in default above still applies.
 
 ## Existing tables and custom table names
 
-Set `tables.*` to your own names (seven now, with `folders` and `folder_members`). If those tables already exist, set `migrations` to `false` so the package does not try to create them; they then need the columns listed under [Data model](#data-model-and-querying-from-your-code). If you publish the migration (`--tag=media-library-migrations`) to edit it, set `migrations` to `false` so only your edited copy is loaded. The guide lists the columns the models expect.
+Set `tables.*` to your own names (there are seven now, including `folders` and `folder_members`). If those tables already exist, set `migrations` to `false` so the package does not try to create them. They then need the columns listed under [Data model](#data-model-and-querying-from-your-code). If you publish the migration (`--tag=media-library-migrations`) to edit it, also set `migrations` to `false`, so only your edited copy is loaded. The guide lists the columns the models expect.
 
 ## Look and feel, dark mode, languages
 
-- **Colours** come from your panel's palette (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`), so the library follows your theme, including dark mode, with no work. To fine-tune it, set the `--ml-*` custom properties on `.bn-media`. They are listed at the top of `resources/css/media.css`.
-- **Languages:** English, Traditional Chinese (`zh-Hant`) and Simplified Chinese (`zh-Hans`). Publish to change the wording:
+- **Colours** come from your panel's palette (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`). So the library follows your theme, including dark mode, with no extra work. To fine-tune it, set the `--ml-*` custom properties on `.bn-media`. They are listed at the top of `resources/css/media.css`.
+- **Languages:** English, Traditional Chinese (`zh-Hant`) and Simplified Chinese (`zh-Hans`). Publish the translations to change the wording:
 
   ```bash
   php artisan vendor:publish --tag=media-library-translations
@@ -1199,7 +1260,7 @@ Set `tables.*` to your own names (seven now, with `folders` and `folder_members`
 
 ## Overriding pages and views
 
-Swap either page for a subclass of your own, to change a query, add a header action or use your own view:
+You can replace either page with a subclass of your own. Do this to change a query, add a header action or use your own view:
 
 ```php
 use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
@@ -1223,11 +1284,11 @@ To change only the markup, publish the views. A view in `resources/views/vendor/
 php artisan vendor:publish --tag=media-library-views
 ```
 
-Services are bound in the container, so you can rebind them too. Bind your own `UsageResolver`, for example (see [Where an asset is used](#where-an-asset-is-used)).
+Services are bound in the container, so you can rebind them too. For example, bind your own `UsageResolver` (see [Where an asset is used](#where-an-asset-is-used)).
 
 ## Exceptions
 
-All extend `Banyan\FilamentMediaLibrary\Exceptions\MediaException` (a `RuntimeException`). Messages never contain a filename, a folder name or a password.
+All exceptions extend `Banyan\FilamentMediaLibrary\Exceptions\MediaException` (a `RuntimeException`). Messages never contain a filename, a folder name or a password.
 
 **Uploads and files**
 
@@ -1265,67 +1326,86 @@ composer test       # Pest
 composer analyse    # PHPStan level 9
 ```
 
-The suite boots a bare Laravel app with Filament and this package only. Its table names carry a `lib_` prefix, so any query that ignores the table config fails. It covers the gate, the governance events, the picker (including its kinds and folders), the pages, the signed routes, the upload guard, the scanner, the file delivery and previews, folders and folder access (including that a restricted folder is absent from the HTML and the Livewire payload of someone without access) and the usage tracking, plus the worked example.
+The suite boots a bare Laravel app with Filament and this package only. Its table names carry a `lib_` prefix, so any query that ignores the table config fails. The tests cover:
+
+- the gate and the governance events
+- the picker (including its kinds and folders) and the pages
+- the signed routes, the upload guard and the scanner
+- file delivery and previews
+- folders and folder access, including a check that a restricted folder is absent from the HTML and the Livewire payload of someone without access
+- usage tracking
+- the worked example
 
 To test your own integration (a resource with a picker, usage recording, signed URLs, an audit listener), see [Testing your integration](docs/guide.md#14-testing-your-integration).
 
 ## Running the example
 
-[`examples/Articles`](examples/Articles) is a complete, tested module built on the plugin: articles with a hero image and a gallery, a usage-recording trait, an editors gate, an audit listener with its own table and Filament page, and a public page that renders a srcset. Its tests are in [`tests/Feature/Examples/ArticlesTest.php`](tests/Feature/Examples/ArticlesTest.php). The [guide](docs/guide.md) explains it piece by piece.
+[`examples/Articles`](examples/Articles) is a complete, tested module built on the plugin. It has articles with a hero image and a gallery, a usage-recording trait, an editors gate, an audit listener with its own table and Filament page, and a public page that renders a srcset. Its tests are in [`tests/Feature/Examples/ArticlesTest.php`](tests/Feature/Examples/ArticlesTest.php). The [guide](docs/guide.md) explains it piece by piece.
 
-To try it in your app, map its namespace in `composer.json` (`examples/` is left out of Composer downloads, so copy it from the repository):
+To try it in your app, map its namespace in `composer.json`. Composer downloads leave out `examples/`, so copy it from the repository:
 
 ```json
 "autoload": { "psr-4": { "Banyan\\FilamentMediaLibrary\\Examples\\": "examples/" } }
 ```
 
-Then add `ArticlesServiceProvider` to `bootstrap/providers.php`, add `ArticleResource` and `MediaAuditResource` to your panel's `->resources([...])`, list the editors' emails in `config/example-articles.php` (key `editors`), and run `php artisan migrate`.
+Then do these steps:
+
+1. Add `ArticlesServiceProvider` to `bootstrap/providers.php`.
+2. Add `ArticleResource` and `MediaAuditResource` to your panel's `->resources([...])`.
+3. List the editors' emails in `config/example-articles.php` (key `editors`).
+4. Run `php artisan migrate`.
 
 ## FAQ and troubleshooting
 
-**An image URL answers 403.** The signature is invalid. Common causes: the URL was edited; `APP_KEY` changed since it was generated; the URL was generated for another host or scheme than the one it is requested on (check `APP_URL` and your trusted proxies). Generate the URL again with `RenditionService::url()`. Signatures do not expire.
+**An image URL answers 403.** The signature is invalid. Common causes are:
+
+- Someone edited the URL.
+- `APP_KEY` changed after the URL was generated.
+- The URL was generated for a different host or scheme from the one it is requested on. Check `APP_URL` and your trusted proxies.
+
+Generate the URL again with `RenditionService::url()`. Signatures do not expire.
 
 **An image URL answers 404.** The asset (uuid) no longer exists, or its original file is missing from the disk.
 
-**There is no Upload button.** The signed-in user cannot manage. `media.manage` is undefined (managing is closed by default) or it returns `false` for this user. Define it, or use `MediaLibraryGate::manageUsing()`. If you renamed the ability in config, define that name.
+**There is no Upload button.** The signed-in user cannot manage. Either `media.manage` is undefined (managing is closed by default) or it returns `false` for this user. Define it, or use `MediaLibraryGate::manageUsing()`. If you renamed the ability in config, define that name.
 
 **The Media library menu item does not show.** Browsing is refused (`media.view` is defined and returns `false`), or `navigation.register` is `false`.
 
-**The usage table says "Article #1", not the title.** That is the default resolver, which only knows the model class and key. Bind your own `UsageResolver` to show titles and links.
+**The usage table says "Article #1", not the title.** The default resolver only knows the model class and key. Bind your own `UsageResolver` to show titles and links.
 
 **An asset I use shows no usage and can be deleted.** The model never called `UsageRecorder::sync()`. The picker stores ids only.
 
 **I deleted an article and the image is still "in use".** Call `UsageRecorder::forget($article)` when the model is deleted.
 
-**Images 404 after I changed `MEDIA_LIBRARY_DISK`.** Each asset keeps using the disk it was uploaded to (originals, replacements and renditions), so keep the old disk defined in `config/filesystems.php`. Only new uploads go to the new disk.
+**Images 404 after I changed `MEDIA_LIBRARY_DISK`.** Each asset keeps using the disk it was uploaded to (originals, replacements and renditions). Keep the old disk defined in `config/filesystems.php`. Only new uploads go to the new disk.
 
-**Do I need `storage:link`?** No. Nothing is served by a direct URL to the disk.
+**Do I need `storage:link`?** No. The library never serves a file by a direct URL to the disk.
 
-**Do I need a queue?** No. Renditions are made on the first request. A queued pipeline is a different feature with its own failure modes.
+**Do I need a queue?** No. Renditions are made on the first request.
 
-**Can I upload a PDF? An SVG?** A PDF, yes: see [File kinds and accepted types](#file-kinds-and-accepted-types). An SVG, no. It can carry script and needs sanitising first, so it is not in this release. Listing `image/svg+xml` under `uploads.kinds.image` does not make it work: the image decoder cannot read it.
+**Can I upload a PDF? An SVG?** You can upload a PDF. See [File kinds and accepted types](#file-kinds-and-accepted-types). You cannot upload an SVG. It can carry script and needs sanitising first, so it is not in this release. If you list `image/svg+xml` under `uploads.kinds.image`, it still does not work, because the image decoder cannot read it.
 
-**An upload is refused with "Office files that contain macros are not accepted", "does not match its content" or "not accepted".** The upload guard decided from the bytes, not from the name. A `.docx` that holds a macro project, a `.pdf` that is really HTML and a type that is not on the list are refused, and nothing is written. See [Upload safety](#upload-safety). Convert the file, or add the type to `uploads.kinds` if you are sure you want it.
+**An upload is refused with "Office files that contain macros are not accepted", "does not match its content" or "not accepted".** The upload guard decided from the bytes, not from the name. It refuses a `.docx` that holds a macro project, a `.pdf` that is really HTML, and any type that is not on the list. Nothing is written. See [Upload safety](#upload-safety). Convert the file, or add the type to `uploads.kinds` if you are sure you want it.
 
 **A large upload fails before it reaches the library.** PHP's `upload_max_filesize` and `post_max_size`, and Livewire's temporary-upload limit (`config/livewire.php`), are lower than the kind's `max_size`. The defaults allow a 500 MB video, which PHP's defaults do not. Raise all three.
 
-**PDF thumbnails show an icon, not the first page.** First-page thumbnails need `ext-imagick` with Ghostscript behind it. Install both (`apt install ghostscript php-imagick`) and restart PHP. If they are installed and it still fails, your ImageMagick `policy.xml` probably forbids the PDF coder; allow reading PDF there. Or bind your own `PdfThumbnailer`. See [Previews](#previews). The icon is the designed fallback, not an error.
+**PDF thumbnails show an icon, not the first page.** First-page thumbnails need `ext-imagick` with Ghostscript. Install both (`apt install ghostscript php-imagick`) and restart PHP. If both are installed and it still fails, your ImageMagick `policy.xml` probably forbids the PDF coder. Allow reading PDF there. Or bind your own `PdfThumbnailer`. See [Previews](#previews). The icon is the planned fallback, not an error.
 
-**A video will not seek, or plays only after it has downloaded.** Seeking needs `Range` requests. They work on a local disk and, through a temporary URL, on S3-style disks. A disk without temporary URLs is streamed whole, with no ranges. A proxy or CDN that strips `Range`, or an MP4 whose index sits at the end of the file (encode it with `ffmpeg -movflags +faststart`), has the same symptom. See [Delivering files](#delivering-files).
+**A video will not seek, or plays only after it has downloaded.** Seeking needs `Range` requests. They work on a local disk and, through a temporary URL, on S3-style disks. A disk without temporary URLs is streamed whole, with no ranges. You see the same problem when a proxy or CDN strips `Range`, or when an MP4 has its index at the end of the file. For the MP4 case, encode it with `ffmpeg -movflags +faststart`. See [Delivering files](#delivering-files).
 
 **A video uploads but does not play.** The library accepts MP4 and WebM containers by what they are, but a browser plays only the codecs it knows. Use H.264 video with AAC audio in MP4. There is no transcoding in this release.
 
-**A restricted image is broken on a public page.** By design. A file in a members-only or password-protected folder has a short-lived address that needs the visitor's session, so it cannot appear on a page that anonymous people see, and the old permanent address stops working the moment the file is moved in. Put public images in an open folder. On an intranet where everyone signs in, opt in with `MediaPicker::...->allowRestricted()`. See [Files in restricted folders, and public pages](#files-in-restricted-folders-and-public-pages).
+**A restricted image is broken on a public page.** This is by design. A file in a members-only or password-protected folder has a short-lived address that needs the visitor's session. So it cannot appear on a page that anonymous people see. The old permanent address also stops working as soon as the file moves into the restricted folder. Put public images in an open folder. On an intranet where everyone signs in, use `MediaPicker::...->allowRestricted()`. See [Files in restricted folders, and public pages](#files-in-restricted-folders-and-public-pages).
 
-**A folder, or a file, is missing for someone.** If it is members-only, it is absent for anyone who is not the owner, a member or a `media.manage-all` holder, and so is everything below it (access only narrows down the tree). That is the point: it is not hidden, it is not there. Add the person under **Folder, Access…**. A password folder is listed with a lock until they unlock it.
+**A folder, or a file, is missing for someone.** A members-only folder is absent for anyone who is not the owner, a member or a `media.manage-all` holder. Everything below it is absent too (access only narrows down the tree). This is intended. The folder is not hidden, it is not there. Add the person under **Folder, Access…**. A password folder is listed with a lock until they unlock it.
 
-**I forgot a folder's password.** The folder's owner, or anyone with `media.manage-all`, opens **Folder, Access…** and sets a new one. It cannot be read back, since only a hash is stored, and setting a new one locks the folder again for everyone.
+**I forgot a folder's password.** The folder's owner, or anyone with `media.manage-all`, opens **Folder, Access…** and sets a new password. The old one cannot be read back, because the library stores only a hash. Setting a new password locks the folder again for everyone.
 
-**"Too many wrong attempts".** Five wrong passwords per user per folder in 15 minutes are throttled, even if the next one is right. Wait for the time the message gives. The attempts are recorded as `FolderUnlockFailed` events.
+**"Too many wrong attempts".** Five wrong passwords per user per folder in 15 minutes are throttled, even if the next one is right. Wait for the time the message gives. The library records the attempts as `FolderUnlockFailed` events.
 
-**A member can see the folder but cannot upload to it.** Their role is `view`. Give them `manage` under **Access…**. In a members-only folder the role is the grant: they do not also need `media.manage`.
+**A member can see the folder but cannot upload to it.** Their role is `view`. Give them `manage` under **Access…**. In a members-only folder the role is the grant, so they do not also need `media.manage`.
 
-**"This folder is not empty".** A folder is deleted only when it holds nothing. Tick **Move its contents to the parent folder first** in the delete dialog to lift everything up one level; no file is ever deleted by deleting a folder.
+**"This folder is not empty".** You can delete a folder only when it holds nothing. Tick **Move its contents to the parent folder first** in the delete dialog to lift everything up one level. Deleting a folder never deletes a file.
 
 **Where can I read more?** The [usage guide](docs/guide.md).
 
