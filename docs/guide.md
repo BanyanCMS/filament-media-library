@@ -872,6 +872,8 @@ If the tables already exist, set `media-library.migrations` to `false` so the pa
 
 An existing table has to have these columns:
 
+The README's [Data model and querying from your code](../README.md#data-model-and-querying-from-your-code) section describes every column, the models, scopes and helper services, and query recipes for controllers and services.
+
 | Table | Columns |
 | --- | --- |
 | assets | `id`, `uuid` (unique), `disk`, `path`, `filename`, `mime_type`, `size_bytes`, `width`, `height`, `alt_text` (not null), `focal_x`, `focal_y` (decimal, default 0.5), `license_expires_at` (nullable timestamp), `current_version_id` (nullable), `uploaded_by` (nullable), `created_at`, `updated_at` |

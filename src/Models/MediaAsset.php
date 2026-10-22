@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Models;
 
+use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -97,6 +99,98 @@ final class MediaAsset extends Model
         return $query->where(function (Builder $q): void {
             $q->whereNull('license_expires_at')->orWhere('license_expires_at', '>', now());
         });
+    }
+
+    /**
+     * Filename or alt text contains the term. LIKE wildcards in the term are
+     * matched literally.
+     *
+     * @param  Builder<MediaAsset>  $query
+     * @return Builder<MediaAsset>
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        // `!` as the escape character: one ESCAPE clause that MySQL, PostgreSQL
+        // and SQLite all read the same way, unlike a backslash.
+        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+
+        return $query->where(fn (Builder $q) => $q
+            ->whereRaw("filename like ? escape '!'", [$like])
+            ->orWhereRaw("alt_text like ? escape '!'", [$like]));
+    }
+
+    /**
+     * Carries any of the given tags (names are normalised as the library stores them).
+     *
+     * @param  Builder<MediaAsset>  $query
+     * @param  string|list<string>  $names
+     * @return Builder<MediaAsset>
+     */
+    public function scopeTagged(Builder $query, string|array $names): Builder
+    {
+        $names = array_values(array_filter(array_map(MediaTag::normalise(...), (array) $names), static fn (string $name): bool => $name !== ''));
+
+        return $query->whereHas('tags', fn (Builder $q) => $q->whereIn(MediaConfig::table('tags').'.name', $names));
+    }
+
+    /**
+     * The licence has lapsed.
+     *
+     * @param  Builder<MediaAsset>  $query
+     * @return Builder<MediaAsset>
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->whereNotNull('license_expires_at')->where('license_expires_at', '<=', now());
+    }
+
+    /**
+     * The licence lapses within the next `$days` days (and has not yet).
+     *
+     * @param  Builder<MediaAsset>  $query
+     * @return Builder<MediaAsset>
+     */
+    public function scopeExpiringWithin(Builder $query, int $days): Builder
+    {
+        return $query->whereNotNull('license_expires_at')
+            ->where('license_expires_at', '>', now())
+            ->where('license_expires_at', '<=', now()->addDays(max(0, $days)));
+    }
+
+    /**
+     * Used somewhere, as the bound {@see UsageResolver} counts usage — the same
+     * answer delete protection and the licence report give.
+     *
+     * @param  Builder<MediaAsset>  $query
+     * @return Builder<MediaAsset>
+     */
+    public function scopeUsed(Builder $query): Builder
+    {
+        app(UsageResolver::class)->whereUsed($query->getQuery(), $this->getTable().'.id');
+
+        return $query;
+    }
+
+    /** The asset with this public uuid, or null. */
+    public static function findByUuid(string $uuid): ?self
+    {
+        return self::query()->where('uuid', $uuid)->first();
+    }
+
+    /**
+     * A signed rendition URL: the one call a controller or Blade view needs.
+     *
+     * @param  'crop'|'contain'|null  $fit
+     */
+    public function url(?int $width = null, ?int $height = null, ?string $fit = null): string
+    {
+        return app(RenditionService::class)->url($this, $width, $height, $fit);
     }
 
     /** Bytes as a short human string. Presentation, but shared by three surfaces. */

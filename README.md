@@ -28,6 +28,7 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 - [Where an asset is used](#where-an-asset-is-used)
 - [Showing an image](#showing-an-image)
 - [Writing from code](#writing-from-code)
+- [Data model and querying from your code](#data-model-and-querying-from-your-code)
 - [Audit log: events](#audit-log-events)
 - [Licence expiry](#licence-expiry)
 - [Configuration](#configuration)
@@ -405,6 +406,139 @@ $media->delete($asset, (string) $user->id);
 | `delete(MediaAsset $asset, string $actorId)` | `void` | `AssetReferenced` |
 
 `$actorId` is your user's id as a string. It goes into the event. `updateDetails()` sets the licence expiry to exactly what you pass, so `null` clears it. `uploaded_by` on the asset is set only when it is numeric. These methods do not check the gate: if the call is made on behalf of a user, check `MediaLibraryGate::allowsManage()` yourself.
+
+## Data model and querying from your code
+
+Read the tables freely from any controller, service, job or report. **Write only through `MediaGovernanceService`** ([Writing from code](#writing-from-code)): it keeps the asset/version invariant, removes files on rollback and dispatches the events your audit log and webhooks depend on.
+
+### Tables
+
+The names below are the defaults. Each one is configurable in `media-library.tables.*`; Banyan uses `cms_media_*`. In raw queries, read the name from `MediaConfig::table('assets')` and the others, never hard-code it.
+
+```mermaid
+erDiagram
+    media_assets ||--o{ media_versions : "has versions"
+    media_assets ||--o| media_versions : "current_version_id"
+    media_assets ||--o{ media_asset_tag : ""
+    media_tags ||--o{ media_asset_tag : ""
+    media_assets ||--o{ media_usages : "used by"
+```
+
+**`media_assets`**: one row per image, the thing you reference from your own tables.
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `id` | bigint | Primary key. Store this in your own column (`hero_id`) |
+| `uuid` | uuid, unique | Public identifier, used in URLs. Never expose `id` in a URL |
+| `disk`, `path` | string | Where the **current** file lives. Each asset keeps the disk it was uploaded to |
+| `filename` | string | Original filename of the current file. It can be personal data, so do not log it |
+| `mime_type` | string | For example `image/jpeg` |
+| `size_bytes`, `width`, `height` | int | Of the current file |
+| `alt_text` | string, not null | Always set; the library refuses an empty one |
+| `focal_x`, `focal_y` | decimal 0–1 | The point every crop keeps (0.5, 0.5 is the centre) |
+| `license_expires_at` | timestamp, nullable | Null means no expiry |
+| `current_version_id` | bigint, nullable | The version row of the current file |
+| `uploaded_by` | bigint, nullable | Your user id, when it was numeric |
+| `created_at`, `updated_at` | timestamp | |
+
+**`media_versions`**: every file an asset has had; a replacement adds a row and the old file is kept.
+
+| Column | Meaning |
+| --- | --- |
+| `id`, `media_asset_id` | Key, and the asset it belongs to (cascade on delete) |
+| `disk`, `path`, `checksum` (sha256), `size_bytes`, `width`, `height` | The file |
+| `uploaded_by`, `created_at` | Who uploaded it and when (no `updated_at`) |
+
+**`media_tags`** (`id`, `name` unique, lower-cased) and **`media_asset_tag`** (`media_asset_id`, `media_tag_id`): flat, editor-authored tags.
+
+**`media_usages`**: what the default resolver counts as "used". It is written by `UsageRecorder`.
+
+| Column | Meaning |
+| --- | --- |
+| `media_asset_id` | The asset |
+| `usable_type`, `usable_id` | Your model (`getMorphClass()` and key, the key stored as a string) |
+| `field` | Which field holds it, for example `hero_id` |
+| `locale` | Nullable, for per-locale fields |
+
+If you bound your own `UsageResolver`, your usages live wherever your resolver reads them. Always ask the resolver (below), not this table.
+
+### Models
+
+All are in `Banyan\FilamentMediaLibrary\Models` and read the configured table names.
+
+| Model | Relations | Helpers |
+| --- | --- | --- |
+| `MediaAsset` | `versions()` (newest first), `currentVersion()`, `tags()` | `isExpired()`, `url($w, $h, $fit)`, `humanSize()`, `dimensions()`, `MediaAsset::findByUuid($uuid)`, `MediaAsset::formatBytes($bytes)` |
+| `MediaVersion` | `asset()` | `shortChecksum()`, `humanSize()` |
+| `MediaTag` | `assets()` | `MediaTag::normalise($name)` |
+
+Query scopes on `MediaAsset`:
+
+| Scope | Selects |
+| --- | --- |
+| `selectable()` | Licence not expired, which is what the picker offers |
+| `expired()` | Licence lapsed |
+| `expiringWithin(int $days)` | Lapses within the next `$days` days |
+| `search(string $term)` | Filename or alt text contains the term |
+| `tagged(string\|array $names)` | Carries any of these tags |
+| `used()` | Used somewhere, as the bound `UsageResolver` counts it |
+
+### Helper services
+
+| Class | Use it for |
+| --- | --- |
+| `Rendering\RenditionService` | `url($asset, $w, $h, 'crop'\|'contain')` gives a signed, cache-safe image URL; `$asset->url(...)` is the shortcut |
+| `Contracts\UsageResolver` | `usages($id)`, `count($id)`, `counts([$ids])` (one query for a list), `whereUsed($query, 'column')` |
+| `Usage\UsageRecorder` | `sync($model, 'field', [$ids])` and `forget($model)`, to keep usage correct |
+| `Governance\MediaExpiryReport` | `summary()` gives the expired and expiring counts, and how many of them are still used |
+| `Access\MediaLibraryGate` | `allowsBrowse()`, `allowsManage()` and `actorId()` before acting on a user's behalf |
+| `Support\MediaConfig` | `table('assets')` and typed config reads |
+
+### Recipes
+
+```php
+use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+
+// An article's hero image for an API response.
+$hero = MediaAsset::query()->find($article->hero_id);
+$data = $hero === null ? null : [
+    'uuid' => $hero->uuid,
+    'alt' => $hero->alt_text,
+    'width' => $hero->width,
+    'height' => $hero->height,
+    'url' => $hero->url(1200, 630, 'crop'),
+    'thumb' => $hero->url(320, 240, 'crop'),
+];
+
+// A list of articles with their heroes, without N+1 queries.
+$heroes = MediaAsset::query()->whereIn('id', $articles->pluck('hero_id')->filter())->get()->keyBy('id');
+
+// A gallery stored as a JSON array of ids, in the editor's order.
+$gallery = MediaAsset::query()->whereIn('id', $article->gallery ?? [])->get()
+    ->sortBy(fn (MediaAsset $a) => array_search($a->id, $article->gallery, true))->values();
+
+// Licences to chase this month: expiring and still on a page.
+$toRenew = MediaAsset::query()->expiringWithin(30)->used()->orderBy('license_expires_at')->get();
+
+// Campus photos an editor may still pick.
+$campus = MediaAsset::query()->selectable()->tagged('campus')->latest()->paginate(24);
+
+// Where one asset is used, and usage counts for a whole list in one query.
+$usages = app(UsageResolver::class)->usages($asset->id);   // list<AssetUsage>: label, type, field, locale, url
+$counts = app(UsageResolver::class)->counts($ids);         // [asset id => count]
+
+// A join from your own table, with the configured table name.
+$rows = DB::table('articles as a')
+    ->join(MediaConfig::table('assets').' as m', 'm.id', '=', 'a.hero_id')
+    ->where('m.mime_type', 'image/png')
+    ->get(['a.id', 'a.title', 'm.uuid', 'm.alt_text']);
+```
+
+**Your own columns.** Store the asset id (`unsignedBigInteger('hero_id')->nullable()`, or a JSON list for a gallery). You may add a foreign key to `media_assets.id` with `nullOnDelete()`. The library refuses to delete an asset that is still used, so the key mainly protects you from bulk imports.
+
+**Do not** update `media_assets` or `media_versions` with `DB::table()->update()` or `$asset->save()`. That skips alt-text validation, the version history, rendition cache keys and the events. Use the service.
 
 ## Audit log: events
 

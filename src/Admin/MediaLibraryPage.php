@@ -141,28 +141,19 @@ class MediaLibraryPage extends Page
     /** @return Builder<MediaAsset> */
     private function filtered(): Builder
     {
-        $query = MediaAsset::query();
-
-        if (trim($this->search) !== '') {
-            $term = '%'.trim($this->search).'%';
-
-            $query->where(function ($q) use ($term): void {
-                $q->where('filename', 'like', $term)->orWhere('alt_text', 'like', $term);
-            });
-        }
+        // The model's own scopes: the grid filters exactly as host code queries.
+        $query = MediaAsset::query()->search($this->search);
 
         if ($this->tagId !== null) {
             $query->whereHas('tags', fn ($q) => $q->where(MediaConfig::table('tags').'.id', $this->tagId));
         }
 
         if ($this->expiredOnly) {
-            $query->whereNotNull('license_expires_at')->where('license_expires_at', '<=', now());
+            $query->expired();
         }
 
         if ($this->expiringOnly) {
-            $query->whereNotNull('license_expires_at')
-                ->where('license_expires_at', '>', now())
-                ->where('license_expires_at', '<=', now()->addDays($this->expiryWarningDays()));
+            $query->expiringWithin($this->expiryWarningDays());
         }
 
         return $query;

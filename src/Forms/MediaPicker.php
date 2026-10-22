@@ -99,15 +99,7 @@ final class MediaPicker extends Select
     {
         $query = MediaAsset::query()->selectable()->orderByDesc('id')->limit(self::OPTION_LIMIT);
 
-        $term = trim((string) $search);
-
-        if ($term !== '') {
-            $like = '%'.addcslashes($term, '\\%_').'%';
-
-            $query->where(function ($q) use ($like): void {
-                $q->where('filename', 'like', $like)->orWhere('alt_text', 'like', $like);
-            });
-        }
+        $query->search((string) $search);
 
         $options = [];
 
