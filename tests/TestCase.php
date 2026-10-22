@@ -6,6 +6,7 @@ namespace Banyan\FilamentMediaLibrary\Tests;
 
 use Banyan\FilamentMediaLibrary\Examples\Articles\ArticlesServiceProvider;
 use Banyan\FilamentMediaLibrary\MediaLibraryServiceProvider;
+use Banyan\FilamentMediaLibrary\Tests\Support\StaffPanelProvider;
 use Banyan\FilamentMediaLibrary\Tests\Support\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
@@ -61,6 +62,7 @@ abstract class TestCase extends Orchestra
             // The worked example (examples/Articles): its migration, editors gate, audit listener and public route.
             ArticlesServiceProvider::class,
             TestPanelProvider::class,
+            StaffPanelProvider::class,
         ];
     }
 

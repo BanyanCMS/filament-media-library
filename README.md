@@ -50,6 +50,7 @@ It is a standalone Filament plugin and needs no other Banyan package. It was ext
 - [Existing tables and custom table names](#existing-tables-and-custom-table-names)
 - [Look and feel, dark mode, languages](#look-and-feel-dark-mode-languages)
 - [Overriding pages and views](#overriding-pages-and-views)
+- [Using it in more than one panel](#using-it-in-more-than-one-panel)
 - [Exceptions](#exceptions)
 - [Testing](#testing)
 - [Running the example](#running-the-example)
@@ -1285,6 +1286,48 @@ php artisan vendor:publish --tag=media-library-views
 ```
 
 Services are bound in the container, so you can rebind them too. For example, bind your own `UsageResolver` (see [Where an asset is used](#where-an-asset-is-used)).
+
+## Using it in more than one panel
+
+You can add the plugin to as many Filament panels as you like. All of them use **one shared library**: the same tables, the same disk and the same files.
+
+```php
+// AdminPanelProvider
+->plugin(MediaLibraryPlugin::make())
+
+// StaffPanelProvider, with its own pages if you want
+->plugin(MediaLibraryPlugin::make()->libraryPage(StaffMediaLibrary::class)->assetPage(StaffMediaAsset::class))
+```
+
+What each panel gets:
+
+- **Its own routes.** For example `/admin/media` and `/staff/media`. Links between the library page and the asset page stay inside the same panel.
+- **Its own page classes**, if you swap them with `libraryPage()` and `assetPage()`.
+- **The same files.** An upload in one panel shows in the other at once. A `MediaPicker` in any panel picks from the same library.
+- **The same image and file URLs.** These URLs do not include the panel, so a page or an API can use them anywhere.
+- **Panel tenancy works.** Banyan runs the library inside a tenant panel (`/admin/{site}/media`).
+
+What is shared by every panel, because it lives in `config/media-library.php`:
+
+- the disk, the table names, the upload rules and the navigation settings;
+- the Gate abilities (`media.view`, `media.manage`, `media.manage-all`).
+
+**Different files for different panels.** There is no separate storage pool per panel. Use folders for this:
+
+- Make a top-level folder for each team, for example "Staff" and "Marketing".
+- Set the folder to **Members only** and add the people who may use it.
+- In a form, use `MediaPicker::make('photo_id')->folder($staffFolder)` so the field only offers that folder.
+
+**Different permissions per panel.** The abilities are global. If a panel needs its own rule, check the current panel in your Gate:
+
+```php
+Gate::define('media.manage', fn (User $user): bool => match (Filament::getCurrentPanel()?->getId()) {
+    'staff' => $user->is_staff,
+    default => $user->is_editor,
+});
+```
+
+The tests in `tests/MultiPanelTest.php` cover two panels on one app.
 
 ## Exceptions
 

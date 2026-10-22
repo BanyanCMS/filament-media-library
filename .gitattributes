@@ -1,6 +1,10 @@
-/tests export-ignore
+# Keep the Composer archive to what runs in an app (no tests, tooling, docs or CI).
+/.github export-ignore
+/docs export-ignore
 /examples export-ignore
+/tests export-ignore
 /phpunit.xml export-ignore
 /phpstan.neon export-ignore
 /pint.json export-ignore
 /.gitattributes export-ignore
+/.gitignore export-ignore
