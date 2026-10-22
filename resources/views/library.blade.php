@@ -3,6 +3,11 @@
     $assets = $this->assets();
     $tags = $this->tagOptions();
     $expiry = $this->expirySummary();
+    $folders = $this->foldersEnabled();
+    $currentFolder = $this->currentFolder();
+    $subfolders = $folders && ! $this->isFiltered() ? $this->subfolders() : [];
+    $canSelect = $this->canManageFolders();
+    $locked = $this->lockedFolder();
 @endphp
 
 <x-filament-panels::page>
@@ -86,6 +91,79 @@
             @endif
         </div>
 
+        @if ($folders && $currentFolder !== null && $this->isFiltered())
+            <label class="bn-media__filter bn-media__filter--check">
+                <x-filament::input.checkbox wire:model.live="wholeLibrary" />
+                <span>{{ __('media-library::media.folders.whole_library') }}</span>
+            </label>
+        @endif
+
+        <div class="{{ $folders ? 'bn-media__layout' : '' }}">
+        @if ($folders)
+            <nav class="bn-media__folders" aria-label="{{ __('media-library::media.folders.nav') }}">
+                <ul role="tree" class="bn-media__tree" aria-label="{{ __('media-library::media.folders.nav') }}">
+                    <li role="treeitem" aria-selected="{{ $currentFolder === null ? 'true' : 'false' }}" aria-expanded="true">
+                        <div class="bn-media__tree-row">
+                            <span class="bn-media__tree-spacer" aria-hidden="true"></span>
+                            <button
+                                type="button"
+                                class="bn-media__tree-link {{ $currentFolder === null ? 'is-current' : '' }}"
+                                wire:click="openFolder"
+                                @if ($currentFolder === null) aria-current="true" @endif
+                            >
+                                <x-filament::icon icon="heroicon-o-home" aria-hidden="true" />
+                                <span>{{ __('media-library::media.folders.all') }}</span>
+                            </button>
+                        </div>
+                        @include('media-library::partials.folder-tree', ['nodes' => $this->folderTree()])
+                    </li>
+                </ul>
+            </nav>
+        @endif
+
+        <div class="bn-media__main">
+        @if ($folders && $currentFolder !== null)
+            <nav aria-label="{{ __('media-library::media.folders.breadcrumb') }}">
+                <ol class="bn-media__crumbs">
+                    <li>
+                        <button type="button" class="bn-media__crumb-link" wire:click="openFolder">{{ __('media-library::media.folders.all') }}</button>
+                    </li>
+                    @foreach ($this->breadcrumbs() as $crumb)
+                        <li>
+                            @if ($crumb->id === $currentFolder->id)
+                                <span class="bn-media__crumb-current" aria-current="page">{{ $crumb->name }}</span>
+                            @else
+                                <button type="button" class="bn-media__crumb-link" wire:click="openFolder('{{ $crumb->uuid }}')">{{ $crumb->name }}</button>
+                            @endif
+                        </li>
+                    @endforeach
+                </ol>
+            </nav>
+        @endif
+
+        @if ($canSelect && count($selected) > 0)
+            <div class="bn-media__selection" role="status">
+                <span>{{ trans_choice('media-library::media.folders.selected', count($selected), ['count' => count($selected)]) }}</span>
+                <x-filament::button size="sm" color="gray" wire:click="mountAction('moveSelected')">
+                    {{ __('media-library::media.folders.move_selected') }}
+                </x-filament::button>
+                <x-filament::button size="sm" color="gray" wire:click="$set('selected', [])">
+                    {{ __('media-library::media.folders.clear_selection') }}
+                </x-filament::button>
+            </div>
+        @endif
+
+        @if ($locked !== null)
+            {{-- A password folder waits to be unlocked: no counts, no files, no sub-folders. --}}
+            <div class="bn-media__locked-panel" role="status">
+                <x-filament::icon icon="heroicon-o-lock-closed" class="bn-media__banner-icon" aria-hidden="true" />
+                <strong>{{ __('media-library::media.access.locked_heading') }}</strong>
+                <p class="bn-media__meta">{{ __('media-library::media.access.locked_text', ['minutes' => max(1, (int) config('media-library.folders.unlock_minutes', 30))]) }}</p>
+                <x-filament::button icon="heroicon-o-lock-open" wire:click="mountAction('unlockFolder')">
+                    {{ __('media-library::media.access.unlock') }}
+                </x-filament::button>
+            </div>
+        @else
         @php $total = $this->totalAssets(); @endphp
         <p class="bn-media__meta bn-media__count" aria-live="polite">
             {{ count($assets) < $total
@@ -93,14 +171,62 @@
                 : trans_choice('media-library::media.count', $total, ['count' => $total]) }}
         </p>
 
-        @if ($assets === [])
+        @if ($assets === [] && $subfolders === [])
             <p class="bn-media__empty">
-                {{ $this->isFiltered() ? __('media-library::media.empty_filtered') : __('media-library::media.empty') }}
+                @if ($this->isFiltered())
+                    {{ __('media-library::media.empty_filtered') }}
+                @elseif ($currentFolder !== null)
+                    {{ __('media-library::media.folders.empty') }}
+                @else
+                    {{ __('media-library::media.empty') }}
+                @endif
             </p>
         @else
             <ul class="bn-media__grid" role="list">
+                @foreach ($subfolders as $subfolder)
+                    @php
+                        // WCAG 2.5.3 (label in name): the accessible name must contain every word shown on the tile.
+                        $folderLocked = $this->isFolderLocked($subfolder);
+                        $folderItems = trans_choice('media-library::media.folders.items', $this->itemCount($subfolder), ['count' => $this->itemCount($subfolder)]);
+                        $folderName = __('media-library::media.folders.open_named', ['name' => $subfolder->name])
+                            .' '.($folderLocked ? __('media-library::media.access.locked') : $folderItems)
+                            .(! $folderLocked && $this->isFolderMembersOnly($subfolder) ? ' '.__('media-library::media.access.members_only') : '');
+                    @endphp
+                    <li class="bn-media__card bn-media__folder-card" wire:key="folder-{{ $subfolder->id }}">
+                        <button
+                            type="button"
+                            class="bn-media__folder-link"
+                            wire:click="openFolder('{{ $subfolder->uuid }}')"
+                            aria-label="{{ $folderName }}"
+                        >
+                            <x-filament::icon icon="heroicon-o-folder" aria-hidden="true" />
+                            <span class="bn-media__folder-name">{{ $subfolder->name }}</span>
+                            @if ($folderLocked)
+                                <span class="bn-media__chip bn-media__flag--warn">
+                                    <x-filament::icon icon="heroicon-m-lock-closed" aria-hidden="true" />
+                                    {{ __('media-library::media.access.locked') }}
+                                </span>
+                            @else
+                                <span class="bn-media__meta">{{ $folderItems }}</span>
+                                @if ($this->isFolderMembersOnly($subfolder))
+                                    <span class="bn-media__chip">{{ __('media-library::media.access.members_only') }}</span>
+                                @endif
+                            @endif
+                        </button>
+                    </li>
+                @endforeach
+
                 @foreach ($assets as $asset)
                     <li class="bn-media__card" wire:key="asset-{{ $asset->id }}">
+                        @if ($canSelect)
+                            <label class="bn-media__select">
+                                <x-filament::input.checkbox
+                                    wire:model.live="selected"
+                                    :value="$asset->id"
+                                    :aria-label="__('media-library::media.folders.select', ['name' => $asset->filename])"
+                                />
+                            </label>
+                        @endif
                         {{-- The link's own accessible name, not the image's alt
                              text: an asset missing alt text (flagged below) would
                              otherwise leave this link with no name at all for a
@@ -110,25 +236,54 @@
                             href="{{ $this->assetUrl($asset) }}"
                             aria-label="{{ __('media-library::media.actions.open_named', ['name' => $asset->filename]) }}"
                         >
-                            <img
-                                class="bn-media__thumb"
-                                src="{{ $this->thumbnailUrl($asset) }}"
-                                alt=""
-                                loading="lazy"
-                                width="320"
-                                height="240"
-                            />
+                            @if ($asset->isImage())
+                                <img
+                                    class="bn-media__thumb"
+                                    src="{{ $this->thumbnailUrl($asset) }}"
+                                    alt=""
+                                    loading="lazy"
+                                    width="320"
+                                    height="240"
+                                />
+                            @elseif (($pdfThumbnail = $this->pdfThumbnailUrl($asset)) !== null)
+                                <img
+                                    class="bn-media__thumb bn-media__thumb--page"
+                                    src="{{ $pdfThumbnail }}"
+                                    alt=""
+                                    loading="lazy"
+                                    width="320"
+                                    height="240"
+                                />
+                            @else
+                                <span class="bn-media__thumb bn-media__kind-icon">
+                                    <x-filament::icon :icon="$asset->kind->icon()" aria-hidden="true" />
+                                </span>
+                            @endif
                         </a>
 
                         <div class="bn-media__card-body">
-                            <a class="bn-media__filename" href="{{ $this->assetUrl($asset) }}">{{ $asset->filename }}</a>
+                            {{-- A person names a document ("Annual report 2025"); a filename is what a camera called a picture. --}}
+                            <a class="bn-media__filename" href="{{ $this->assetUrl($asset) }}">{{ $asset->isImage() ? $asset->filename : $asset->displayName() }}</a>
 
                             <p class="bn-media__meta bn-media__dims">
-                                {{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }} · {{ $asset->humanSize() }}
+                                @if ($asset->isImage())
+                                    {{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }} · {{ $asset->humanSize() }}
+                                @else
+                                    <span class="bn-media__chip bn-media__kind-badge">{{ $asset->kind->label() }}</span>
+                                    {{ $asset->humanSize() }}
+                                @endif
                             </p>
 
+                            @if (! $asset->isImage())
+                                <p class="bn-media__meta bn-media__mono bn-media__subname">{{ $asset->filename }}</p>
+                            @endif
+
                             <div class="bn-media__flags">
-                                @if (trim($asset->alt_text) === '')
+                                @if (! $asset->isImage())
+                                    @if (blank($asset->title))
+                                        <span class="bn-media__chip bn-media__flag--warn">{{ __('media-library::media.no_title') }}</span>
+                                    @endif
+                                @elseif (blank($asset->alt_text))
                                     <span class="bn-media__chip bn-media__flag--warn">{{ __('media-library::media.no_alt') }}</span>
                                 @else
                                     <span class="bn-media__meta bn-media__flag--ok">{{ __('media-library::media.has_alt') }}</span>
@@ -159,7 +314,7 @@
                                     wire:click="mountAction('deleteAsset', { asset: {{ $asset->id }} })"
                                 />
                             </div>
-                        @elseif ($this->canManage())
+                        @elseif ($this->canManageAsset($asset))
                             <span
                                 class="bn-media__protected"
                                 role="img"
@@ -180,6 +335,9 @@
                 </div>
             @endif
         @endif
+        @endif
+        </div>
+        </div>
     </x-filament::section>
 </div>
 </x-filament-panels::page>

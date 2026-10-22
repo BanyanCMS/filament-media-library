@@ -37,6 +37,8 @@ it('stores an upload in the configured tables and announces it', function (): vo
         ->and($events[0]->payload())->toBe([
             'asset_id' => $asset->id,
             'uuid' => $asset->uuid,
+            'kind' => 'image',
+            'folder_id' => null,
             'mime_type' => 'image/png',
             'size_bytes' => $asset->size_bytes,
             'width' => 400,

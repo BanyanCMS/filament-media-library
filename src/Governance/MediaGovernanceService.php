@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Governance;
 
+use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Events\AssetDeleted;
 use Banyan\FilamentMediaLibrary\Events\AssetReplaced;
 use Banyan\FilamentMediaLibrary\Events\AssetTagged;
 use Banyan\FilamentMediaLibrary\Events\AssetUpdated;
 use Banyan\FilamentMediaLibrary\Events\AssetUploaded;
+use Banyan\FilamentMediaLibrary\Events\CaptionsChanged;
 use Banyan\FilamentMediaLibrary\Events\FocalPointChanged;
 use Banyan\FilamentMediaLibrary\Events\MediaEvent;
+use Banyan\FilamentMediaLibrary\Events\TranscriptChanged;
 use Banyan\FilamentMediaLibrary\Exceptions\AltTextRequired;
-use Banyan\FilamentMediaLibrary\Exceptions\UnreadableImage;
+use Banyan\FilamentMediaLibrary\Exceptions\CompanionNotAllowed;
+use Banyan\FilamentMediaLibrary\Exceptions\MediaException;
+use Banyan\FilamentMediaLibrary\Exceptions\TitleRequired;
+use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Models\MediaVersion;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
 use DateTimeInterface;
@@ -30,9 +37,15 @@ use Illuminate\Database\ConnectionInterface;
  * replaced or deleted without a trail is exactly the change nobody can
  * reconstruct afterwards.
  *
- * Event payloads carry references — asset id, uuid, version id, byte count —
- * and never the alt text or filename: a filename is frequently personal data
+ * Event payloads carry references — asset id, uuid, kind, version id, byte
+ * count — and never the alt text, title or filename: a filename is frequently personal data
  * ("cv-jane-doe.png").
+ *
+ * **Not gated by folder access.** Like {@see MediaFolderService}
+ * this service trusts its caller (an import job, a console command, a test). The
+ * surfaces that act for a signed-in user, the library and asset pages and the
+ * picker, ask {@see FolderAccess::canManage()} inside their
+ * handlers before calling it. Code that calls the service on a user's behalf must do the same.
  */
 final readonly class MediaGovernanceService
 {
@@ -42,7 +55,7 @@ final readonly class MediaGovernanceService
         private Dispatcher $events,
     ) {}
 
-    /** @throws AltTextRequired|UnreadableImage */
+    /** @throws MediaException */
     public function upload(
         string $binary,
         string $filename,
@@ -50,9 +63,11 @@ final readonly class MediaGovernanceService
         string $altText,
         string $actorId,
         ?DateTimeInterface $licenseExpiresAt = null,
+        ?string $title = null,
+        ?MediaFolder $folder = null,
     ): MediaAsset {
         return $this->connection->transaction(function () use (
-            $binary, $filename, $mimeType, $altText, $actorId, $licenseExpiresAt
+            $binary, $filename, $mimeType, $altText, $actorId, $licenseExpiresAt, $title, $folder
         ): MediaAsset {
             $asset = $this->media->store(
                 $binary,
@@ -61,6 +76,8 @@ final readonly class MediaGovernanceService
                 $altText,
                 is_numeric($actorId) ? (int) $actorId : null,
                 $licenseExpiresAt,
+                $title,
+                $folder?->id,
             );
 
             $this->events->dispatch(new AssetUploaded($asset, $actorId));
@@ -69,7 +86,7 @@ final readonly class MediaGovernanceService
         });
     }
 
-    /** @throws UnreadableImage */
+    /** @throws MediaException */
     public function replace(
         MediaAsset $asset,
         string $binary,
@@ -94,19 +111,50 @@ final readonly class MediaGovernanceService
         });
     }
 
-    /** @throws AltTextRequired */
+    /** @throws AltTextRequired|TitleRequired */
     public function updateDetails(
         MediaAsset $asset,
         string $altText,
         ?DateTimeInterface $licenseExpiresAt,
         string $actorId,
+        ?string $title = null,
     ): void {
-        $this->connection->transaction(function () use ($asset, $altText, $licenseExpiresAt, $actorId): void {
-            $altChanged = trim($altText) !== $asset->alt_text;
+        $this->connection->transaction(function () use ($asset, $altText, $licenseExpiresAt, $actorId, $title): void {
+            $altChanged = trim($altText) !== (string) $asset->alt_text;
+            $titleChanged = $title !== null && trim($title) !== (string) $asset->title;
 
-            $this->media->updateDetails($asset, $altText, $licenseExpiresAt);
+            $this->media->updateDetails($asset, $altText, $licenseExpiresAt, $title);
 
-            $this->events->dispatch(new AssetUpdated($asset, $altChanged, $licenseExpiresAt, $actorId));
+            $this->events->dispatch(new AssetUpdated($asset, $altChanged, $licenseExpiresAt, $actorId, $titleChanged));
+        });
+    }
+
+    /**
+     * Attach (or, with null, remove) a video's WebVTT captions.
+     *
+     * @throws CompanionNotAllowed
+     */
+    public function setCaptions(MediaAsset $asset, ?MediaAsset $captions, string $actorId): void
+    {
+        $this->connection->transaction(function () use ($asset, $captions, $actorId): void {
+            $this->media->setCaptions($asset, $captions);
+
+            $this->events->dispatch(new CaptionsChanged($asset, $captions?->id, $actorId));
+        });
+    }
+
+    /**
+     * Write or clear the transcript of a video or audio file. The event says
+     * whether one exists, never what it says: a transcript is speech, often by named people.
+     *
+     * @throws CompanionNotAllowed
+     */
+    public function setTranscript(MediaAsset $asset, ?string $transcript, string $actorId): void
+    {
+        $this->connection->transaction(function () use ($asset, $transcript, $actorId): void {
+            $this->media->setTranscript($asset, $transcript);
+
+            $this->events->dispatch(new TranscriptChanged($asset, filled($asset->transcript), $actorId));
         });
     }
 
@@ -138,11 +186,13 @@ final readonly class MediaGovernanceService
     {
         $assetId = $asset->id;
         $uuid = $asset->uuid;
+        $kind = $asset->kind->value;
+        $folderId = $asset->folder_id;
 
-        $this->connection->transaction(function () use ($asset, $assetId, $uuid, $actorId): void {
+        $this->connection->transaction(function () use ($asset, $assetId, $uuid, $kind, $folderId, $actorId): void {
             $usageCount = $this->media->delete($asset);
 
-            $this->events->dispatch(new AssetDeleted($assetId, $uuid, $usageCount, $actorId));
+            $this->events->dispatch(new AssetDeleted($assetId, $uuid, $usageCount, $actorId, $kind, $folderId));
         });
     }
 }

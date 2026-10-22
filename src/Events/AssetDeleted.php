@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Events;
 
 /** An asset, its versions and its renditions were removed. The usage count at that moment is kept, because no later query can reconstruct it. */
-final readonly class AssetDeleted implements MediaEvent
+final readonly class AssetDeleted implements MediaAssetEvent
 {
+    use AssetSubject;
+
     public function __construct(
         public int $id,
         public string $uuid,
         public int $usageCount,
         public string $actor,
+        public string $kind = 'image',
+        public ?int $folderId = null,
     ) {}
 
     public function name(): string
@@ -34,6 +38,8 @@ final readonly class AssetDeleted implements MediaEvent
         return [
             'asset_id' => $this->id,
             'uuid' => $this->uuid,
+            'kind' => $this->kind,
+            'folder_id' => $this->folderId,
             'usage_count' => $this->usageCount,
         ];
     }

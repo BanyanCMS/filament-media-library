@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Models;
 
+use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $disk
  * @property string $path
  * @property string $checksum
+ * @property MediaKind $kind
  * @property int $size_bytes
  * @property int|null $width
  * @property int|null $height
@@ -42,6 +44,7 @@ final class MediaVersion extends Model
             'size_bytes' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
+            'kind' => MediaKind::class,
             'created_at' => 'datetime',
         ];
     }

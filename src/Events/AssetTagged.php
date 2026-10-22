@@ -7,8 +7,10 @@ namespace Banyan\FilamentMediaLibrary\Events;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 
 /** The asset's tags were replaced. */
-final readonly class AssetTagged implements MediaEvent
+final readonly class AssetTagged implements MediaAssetEvent
 {
+    use AssetSubject;
+
     public function __construct(
         public MediaAsset $asset,
         public int $tagCount,
@@ -35,6 +37,8 @@ final readonly class AssetTagged implements MediaEvent
         return [
             'asset_id' => $this->asset->id,
             'uuid' => $this->asset->uuid,
+            'kind' => $this->asset->kind->value,
+            'folder_id' => $this->asset->folder_id,
             'tag_count' => $this->tagCount,
         ];
     }

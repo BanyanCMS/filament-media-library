@@ -14,6 +14,7 @@ final class User extends Authenticatable
 
     public static function make(string $name = 'Editor'): self
     {
-        return self::query()->create(['name' => $name, 'email' => strtolower($name).'@example.test', 'password' => 'x']);
+        // Idempotent, so a test that signs in twice as the same editor does not collide on the unique email.
+        return self::query()->firstOrCreate(['email' => strtolower($name).'@example.test'], ['name' => $name, 'password' => 'x']);
     }
 }

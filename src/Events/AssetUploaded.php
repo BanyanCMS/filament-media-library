@@ -7,8 +7,10 @@ namespace Banyan\FilamentMediaLibrary\Events;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 
 /** A new asset and its first version were stored. */
-final readonly class AssetUploaded implements MediaEvent
+final readonly class AssetUploaded implements MediaAssetEvent
 {
+    use AssetSubject;
+
     public function __construct(
         public MediaAsset $asset,
         public string $actor,
@@ -34,6 +36,8 @@ final readonly class AssetUploaded implements MediaEvent
         return [
             'asset_id' => $this->asset->id,
             'uuid' => $this->asset->uuid,
+            'kind' => $this->asset->kind->value,
+            'folder_id' => $this->asset->folder_id,
             'mime_type' => $this->asset->mime_type,
             'size_bytes' => $this->asset->size_bytes,
             'width' => $this->asset->width,

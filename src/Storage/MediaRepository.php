@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Storage;
 
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Exceptions\AltTextRequired;
 use Banyan\FilamentMediaLibrary\Exceptions\AssetReferenced;
+use Banyan\FilamentMediaLibrary\Exceptions\CompanionNotAllowed;
+use Banyan\FilamentMediaLibrary\Exceptions\KindMismatch;
+use Banyan\FilamentMediaLibrary\Exceptions\MediaException;
+use Banyan\FilamentMediaLibrary\Exceptions\TitleRequired;
 use Banyan\FilamentMediaLibrary\Exceptions\UnreadableImage;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaTag;
 use Banyan\FilamentMediaLibrary\Models\MediaVersion;
-use Banyan\FilamentMediaLibrary\Rendering\ImageProcessor;
+use Banyan\FilamentMediaLibrary\Uploads\Inspection;
+use Banyan\FilamentMediaLibrary\Uploads\UploadGuard;
 use DateTimeInterface;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -23,12 +29,13 @@ use Illuminate\Support\Str;
 /**
  * The writer for the four media tables and the disk beneath them.
  *
- * It owns validation that must hold for every caller (alt text, decodable
- * bytes) and the asset/version invariant: a replacement appends a version and
+ * It owns validation that must hold for every caller (the {@see UploadGuard}
+ * pipeline, alt text or title) and the asset/version invariant: a replacement appends a version and
  * moves `current_version_id`, in one transaction, and never touches the
  * superseded file.
  *
- * It dispatches no events and does not decide who may call it — both belong
+ * It dispatches no media events (only the guard's pre-write `AssetUploading`)
+ * and does not decide who may call it — both belong
  * to {@see MediaGovernanceService}.
  */
 final readonly class MediaRepository
@@ -36,7 +43,7 @@ final readonly class MediaRepository
     public function __construct(
         private ConnectionInterface $connection,
         private FilesystemFactory $filesystems,
-        private ImageProcessor $processor,
+        private UploadGuard $guard,
         private UsageResolver $usages,
         private string $disk,
         private string $originalsPath,
@@ -46,7 +53,10 @@ final readonly class MediaRepository
     /**
      * Create an asset from raw bytes, together with its first version.
      *
-     * @throws AltTextRequired|UnreadableImage
+     * `$mimeType` is what the client claimed and is ignored: the type is
+     * detected from the bytes ({@see UploadGuard}) and that is what is stored.
+     *
+     * @throws AltTextRequired|TitleRequired|UnreadableImage|MediaException
      */
     public function store(
         string $binary,
@@ -55,23 +65,21 @@ final readonly class MediaRepository
         string $altText,
         ?int $uploadedBy = null,
         ?DateTimeInterface $licenseExpiresAt = null,
+        ?string $title = null,
+        ?int $folderId = null,
     ): MediaAsset {
+        $inspection = $this->guard->inspect($binary, $filename);
         $altText = trim($altText);
+        $title = trim((string) $title);
 
-        if ($altText === '') {
-            throw AltTextRequired::make();
-        }
-
-        $dimensions = $this->processor->dimensions($binary);
-
-        if ($dimensions === null) {
-            throw UnreadableImage::make($filename);
+        if ($inspection->kind === MediaKind::Image ? $altText === '' : $title === '') {
+            throw $inspection->kind === MediaKind::Image ? AltTextRequired::make() : TitleRequired::make();
         }
 
         $uuid = (string) Str::uuid();
 
         return $this->connection->transaction(function () use (
-            $binary, $filename, $mimeType, $altText, $uploadedBy, $licenseExpiresAt, $dimensions, $uuid
+            $binary, $filename, $altText, $title, $uploadedBy, $licenseExpiresAt, $inspection, $uuid, $folderId
         ): MediaAsset {
             $path = $this->write($this->disk, $uuid, 1, $filename, $binary);
 
@@ -80,18 +88,22 @@ final readonly class MediaRepository
                 'disk' => $this->disk,
                 'path' => $path,
                 'filename' => $filename,
-                'mime_type' => $mimeType,
+                'mime_type' => $inspection->mimeType,
+                'kind' => $inspection->kind,
                 'size_bytes' => strlen($binary),
-                'width' => $dimensions[0],
-                'height' => $dimensions[1],
-                'alt_text' => $altText,
+                'width' => $inspection->width,
+                'height' => $inspection->height,
+                'page_count' => $inspection->pageCount,
+                'title' => $title === '' ? null : $title,
+                'alt_text' => $altText === '' ? null : $altText,
                 'focal_x' => 0.5,
                 'focal_y' => 0.5,
                 'license_expires_at' => $licenseExpiresAt,
                 'uploaded_by' => $uploadedBy,
+                'folder_id' => $folderId,
             ]);
 
-            $version = $this->appendVersion($asset, $path, $binary, $dimensions, $uploadedBy);
+            $version = $this->appendVersion($asset, $path, $binary, $inspection, $uploadedBy);
 
             $asset->forceFill(['current_version_id' => $version->id])->save();
 
@@ -107,7 +119,7 @@ final readonly class MediaRepository
      * history that 404s is not a history. Reclaiming that space is a separate,
      * explicit operation, not a side effect of an editor fixing a crop.
      *
-     * @throws UnreadableImage
+     * @throws KindMismatch|UnreadableImage|MediaException
      */
     public function replace(
         MediaAsset $asset,
@@ -116,30 +128,27 @@ final readonly class MediaRepository
         string $mimeType,
         ?int $uploadedBy = null,
     ): MediaVersion {
-        $dimensions = $this->processor->dimensions($binary);
-
-        if ($dimensions === null) {
-            throw UnreadableImage::make($filename);
-        }
+        $inspection = $this->guard->inspect($binary, $filename, $asset->kind);
 
         return $this->connection->transaction(function () use (
-            $asset, $binary, $filename, $mimeType, $uploadedBy, $dimensions
+            $asset, $binary, $filename, $uploadedBy, $inspection
         ): MediaVersion {
             $ordinal = $asset->versions()->count() + 1;
             // The asset's own disk, not the configured one: an asset's versions
             // stay together even after the default disk changes.
             $path = $this->write($asset->disk, $asset->uuid, $ordinal, $filename, $binary);
 
-            $version = $this->appendVersion($asset, $path, $binary, $dimensions, $uploadedBy);
+            $version = $this->appendVersion($asset, $path, $binary, $inspection, $uploadedBy);
 
             $asset->forceFill([
                 'current_version_id' => $version->id,
                 'path' => $path,
                 'filename' => $filename,
-                'mime_type' => $mimeType,
+                'mime_type' => $inspection->mimeType,
                 'size_bytes' => strlen($binary),
-                'width' => $dimensions[0],
-                'height' => $dimensions[1],
+                'width' => $inspection->width,
+                'height' => $inspection->height,
+                'page_count' => $inspection->pageCount,
             ])->save();
 
             // Every cached derivative described the old bytes. The cache path
@@ -151,22 +160,71 @@ final readonly class MediaRepository
         });
     }
 
-    /** @throws AltTextRequired */
+    /**
+     * Edit the text and licence of an asset.
+     *
+     * An image needs alt text; every other kind needs a title. A null `$title`
+     * leaves the stored title alone, so existing image callers are unaffected.
+     *
+     * @throws AltTextRequired|TitleRequired
+     */
     public function updateDetails(
         MediaAsset $asset,
         string $altText,
         ?DateTimeInterface $licenseExpiresAt,
+        ?string $title = null,
     ): void {
         $altText = trim($altText);
+        $title = $title === null ? $asset->title : trim($title);
 
-        if ($altText === '') {
+        if ($asset->isImage() && $altText === '') {
             throw AltTextRequired::make();
         }
 
+        if (! $asset->isImage() && trim((string) $title) === '') {
+            throw TitleRequired::make();
+        }
+
         $asset->forceFill([
-            'alt_text' => $altText,
+            'alt_text' => $altText === '' ? null : $altText,
+            'title' => $title === '' ? null : $title,
             'license_expires_at' => $licenseExpiresAt,
         ])->save();
+    }
+
+    /**
+     * Attach a WebVTT file as a video's captions, or detach with null.
+     *
+     * @throws CompanionNotAllowed
+     */
+    public function setCaptions(MediaAsset $asset, ?MediaAsset $captions): void
+    {
+        if ($asset->kind !== MediaKind::Video) {
+            throw CompanionNotAllowed::captionsFor($asset->kind);
+        }
+
+        if ($captions !== null && $captions->mime_type !== 'text/vtt') {
+            throw CompanionNotAllowed::notWebVtt();
+        }
+
+        $asset->forceFill(['captions_asset_id' => $captions?->id])->save();
+        $asset->unsetRelation('captions');
+    }
+
+    /**
+     * Write the transcript of a video or audio file; blank clears it.
+     *
+     * @throws CompanionNotAllowed
+     */
+    public function setTranscript(MediaAsset $asset, ?string $transcript): void
+    {
+        if (! in_array($asset->kind, [MediaKind::Video, MediaKind::Audio], true)) {
+            throw CompanionNotAllowed::transcriptFor($asset->kind);
+        }
+
+        $transcript = trim((string) $transcript);
+
+        $asset->forceFill(['transcript' => $transcript === '' ? null : $transcript])->save();
     }
 
     /**
@@ -307,14 +365,11 @@ final readonly class MediaRepository
         $this->diskFor($asset)->deleteDirectory($this->renditionsPath.'/'.$asset->uuid);
     }
 
-    /**
-     * @param  array{0: int, 1: int}  $dimensions
-     */
     private function appendVersion(
         MediaAsset $asset,
         string $path,
         string $binary,
-        array $dimensions,
+        Inspection $inspection,
         ?int $uploadedBy,
     ): MediaVersion {
         return MediaVersion::query()->create([
@@ -323,8 +378,9 @@ final readonly class MediaRepository
             'path' => $path,
             'checksum' => hash('sha256', $binary),
             'size_bytes' => strlen($binary),
-            'width' => $dimensions[0],
-            'height' => $dimensions[1],
+            'kind' => $inspection->kind,
+            'width' => $inspection->width,
+            'height' => $inspection->height,
             'uploaded_by' => $uploadedBy,
         ]);
     }

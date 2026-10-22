@@ -6,6 +6,7 @@ namespace Banyan\FilamentMediaLibrary\Access;
 
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -25,6 +26,9 @@ final class MediaLibraryGate
     /** @var (Closure(): bool)|null */
     private static ?Closure $manageFallback = null;
 
+    /** @var (Closure(): bool)|null */
+    private static ?Closure $manageAllFallback = null;
+
     /**
      * Decide "may manage" when the manage ability is not defined — for an app
      * whose permissions live somewhere a Gate ability does not reach.
@@ -36,39 +40,98 @@ final class MediaLibraryGate
         self::$manageFallback = $callback;
     }
 
-    /** Upload, replace, refocus, retag, delete. */
-    public static function allowsManage(): bool
+    /**
+     * Decide "may manage everything" (every folder, restricted or not) when the
+     * manage-all ability is not defined. Banyan maps it to superusers.
+     *
+     * @param  (Closure(): bool)|null  $callback
+     */
+    public static function manageAllUsing(?Closure $callback): void
     {
-        if (auth()->user() === null) {
-            return false;
-        }
+        self::$manageAllFallback = $callback;
+    }
 
-        $ability = MediaConfig::string('abilities.manage', 'media.manage');
+    /**
+     * Upload, replace, refocus, retag, delete.
+     *
+     * With no `$user` the signed-in user is asked. A fallback closure can only
+     * speak for the signed-in user, so for any other user an undefined ability
+     * is a refusal, never a guess.
+     */
+    public static function allowsManage(?Authenticatable $user = null): bool
+    {
+        return self::allowsAbility($user, MediaConfig::string('abilities.manage', 'media.manage'), self::$manageFallback);
+    }
 
-        // allows() first: a Gate::before() grant (how permission packages and
-        // super-admin shortcuts work) counts even when the ability itself was
-        // never define()d, which Gate::has() cannot see.
-        if (Gate::allows($ability)) {
-            return true;
-        }
-
-        if (Gate::has($ability)) {
-            return false;
-        }
-
-        return self::$manageFallback !== null && (self::$manageFallback)() === true;
+    /**
+     * Sees and manages every folder, including members-only and password-protected
+     * ones, without being a member or unlocking. Closed until defined, like
+     * {@see allowsManage()}.
+     */
+    public static function allowsManageAll(?Authenticatable $user = null): bool
+    {
+        return self::allowsAbility($user, MediaConfig::string('abilities.manage_all', 'media.manage-all'), self::$manageAllFallback);
     }
 
     /** See the library and pick from it. */
-    public static function allowsBrowse(): bool
+    public static function allowsBrowse(?Authenticatable $user = null): bool
     {
-        if (auth()->user() === null) {
+        $user ??= self::currentUser();
+
+        if (! $user instanceof Authenticatable) {
             return false;
         }
 
         $ability = MediaConfig::string('abilities.view', 'media.view');
+        $gate = Gate::forUser($user);
 
-        return ! Gate::has($ability) || Gate::allows($ability);
+        return ! $gate->has($ability) || $gate->allows($ability);
+    }
+
+    /** @param (Closure(): bool)|null $fallback */
+    private static function allowsAbility(?Authenticatable $user, string $ability, ?Closure $fallback): bool
+    {
+        $current = self::currentUser();
+        $user ??= $current;
+
+        if (! $user instanceof Authenticatable) {
+            return false;
+        }
+
+        $gate = Gate::forUser($user);
+
+        // allows() first: a Gate::before() grant (how permission packages and
+        // super-admin shortcuts work) counts even when the ability itself was
+        // never define()d, which Gate::has() cannot see.
+        if ($gate->allows($ability)) {
+            return true;
+        }
+
+        if ($gate->has($ability)) {
+            return false;
+        }
+
+        return $fallback !== null && self::isSame($user, $current) && $fallback() === true;
+    }
+
+    private static function currentUser(): ?Authenticatable
+    {
+        return auth()->user();
+    }
+
+    private static function isSame(Authenticatable $a, ?Authenticatable $b): bool
+    {
+        return $b instanceof Authenticatable
+            && $a::class === $b::class
+            && self::identifier($a) === self::identifier($b);
+    }
+
+    /** A user's id as a string, for comparing owners and members; '' when the identifier is not a scalar. */
+    public static function identifier(Authenticatable $user): string
+    {
+        $id = $user->getAuthIdentifier();
+
+        return is_int($id) || is_string($id) ? (string) $id : '';
     }
 
     /** The acting user's id as a string, for event attribution — null when unauthenticated. */

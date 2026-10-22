@@ -8,8 +8,10 @@ use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaVersion;
 
 /** A new file became the asset's current version; the old one is kept. */
-final readonly class AssetReplaced implements MediaEvent
+final readonly class AssetReplaced implements MediaAssetEvent
 {
+    use AssetSubject;
+
     public function __construct(
         public MediaAsset $asset,
         public MediaVersion $version,
@@ -37,6 +39,8 @@ final readonly class AssetReplaced implements MediaEvent
         return [
             'asset_id' => $this->asset->id,
             'uuid' => $this->asset->uuid,
+            'kind' => $this->asset->kind->value,
+            'folder_id' => $this->asset->folder_id,
             'version_id' => $this->version->id,
             'superseded_version_id' => $this->supersededVersionId,
             'size_bytes' => $this->version->size_bytes,

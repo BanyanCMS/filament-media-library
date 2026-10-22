@@ -82,6 +82,8 @@ abstract class TestCase extends Orchestra
             'tags' => 'lib_tags',
             'asset_tag' => 'lib_asset_tag',
             'usages' => 'lib_usages',
+            'folders' => 'lib_folders',
+            'folder_members' => 'lib_folder_members',
         ]);
     }
 }

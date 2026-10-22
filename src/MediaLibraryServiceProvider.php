@@ -4,14 +4,24 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary;
 
+use Banyan\FilamentMediaLibrary\Access\FolderAccess;
+use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpiryReport;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
+use Banyan\FilamentMediaLibrary\Http\FileController;
 use Banyan\FilamentMediaLibrary\Http\RenditionController;
+use Banyan\FilamentMediaLibrary\Http\RestrictedFileController;
+use Banyan\FilamentMediaLibrary\Http\RestrictedRenditionController;
 use Banyan\FilamentMediaLibrary\Rendering\ImageProcessor;
+use Banyan\FilamentMediaLibrary\Rendering\ImagickPdfThumbnailer;
+use Banyan\FilamentMediaLibrary\Rendering\NullPdfThumbnailer;
+use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+use Banyan\FilamentMediaLibrary\Uploads\UploadGuard;
 use Banyan\FilamentMediaLibrary\Usage\DatabaseUsageResolver;
 use Banyan\FilamentMediaLibrary\Usage\UsageRecorder;
 use Filament\Support\Assets\Css;
@@ -20,6 +30,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Image\ImageManager;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 
@@ -50,10 +61,16 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         $this->app->singletonIf(UsageResolver::class, static fn (): UsageResolver => new DatabaseUsageResolver(DB::connection()));
         $this->app->singleton(UsageRecorder::class, static fn (): UsageRecorder => new UsageRecorder(DB::connection()));
 
+        $this->app->singleton(UploadGuard::class, static fn ($app): UploadGuard => new UploadGuard(
+            $app->make(ImageProcessor::class),
+            $app->make(Dispatcher::class),
+            $app,
+        ));
+
         $this->app->singleton(MediaRepository::class, static fn ($app): MediaRepository => new MediaRepository(
             DB::connection(),
             $app->make(FilesystemFactory::class),
-            $app->make(ImageProcessor::class),
+            $app->make(UploadGuard::class),
             $app->make(UsageResolver::class),
             MediaConfig::string('disk', 'public'),
             trim(MediaConfig::string('paths.originals', 'media'), '/'),
@@ -66,11 +83,31 @@ final class MediaLibraryServiceProvider extends ServiceProvider
             MediaConfig::int('renditions.max_dimension', 4096),
         ));
 
+        // First-page PDF thumbnails need Imagick with a PDF delegate; without it, the null object keeps the icon.
+        $this->app->singletonIf(PdfThumbnailer::class, static fn (): PdfThumbnailer => ImagickPdfThumbnailer::supported()
+            ? new ImagickPdfThumbnailer
+            : new NullPdfThumbnailer);
+
+        $this->app->singleton(PdfThumbnailService::class, static fn ($app): PdfThumbnailService => new PdfThumbnailService(
+            $app->make(MediaRepository::class),
+            $app->make(PdfThumbnailer::class),
+            $app->make(RenditionService::class),
+        ));
+
         $this->app->singleton(MediaGovernanceService::class, static fn ($app): MediaGovernanceService => new MediaGovernanceService(
             DB::connection(),
             $app->make(MediaRepository::class),
             $app->make(Dispatcher::class),
         ));
+
+        $this->app->singleton(MediaFolderService::class, static fn ($app): MediaFolderService => new MediaFolderService(
+            DB::connection(),
+            $app->make(Dispatcher::class),
+        ));
+
+        // Scoped, not singleton: it caches the folder table, and that copy must not outlive a request
+        // (Octane, queue workers). The folder and member models also flush it on every write.
+        $this->app->scoped(FolderAccess::class, static fn ($app): FolderAccess => new FolderAccess($app->make(Dispatcher::class)));
 
         $this->app->singleton(MediaExpiryReport::class, static fn ($app): MediaExpiryReport => new MediaExpiryReport(
             DB::connection(),
@@ -85,6 +122,8 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         }
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'media-library');
+        // <x-media-library::file :asset="$asset" />
+        Blade::anonymousComponentPath(__DIR__.'/../resources/views/components', 'media-library');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([__DIR__.'/../config/media-library.php' => config_path('media-library.php')], 'media-library-config');
@@ -95,6 +134,8 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         }
 
         $this->registerRenderRoute();
+        $this->registerFileRoute();
+        $this->registerRestrictedRoutes();
 
         // The package name is the *second* argument: AssetManager::register()
         // overwrites each asset's own ->package() with it.
@@ -116,5 +157,43 @@ final class MediaLibraryServiceProvider extends ServiceProvider
             ->get(MediaConfig::string('route.path', 'media/{uuid}/render'), RenditionController::class)
             ->middleware('signed')
             ->name(MediaConfig::string('route.name', 'media-library.render'));
+    }
+
+    /**
+     * `signed` for the same reason as the rendition route: the URL is embedded
+     * in public pages, so it cannot need a session, but it must be one this
+     * application issued (and it carries the version it was issued for).
+     */
+    private function registerFileRoute(): void
+    {
+        $this->app->make(Router::class)
+            ->get(MediaConfig::string('delivery.file_route.path', 'media/{uuid}/file'), FileController::class)
+            ->middleware('signed')
+            ->name(MediaConfig::string('delivery.file_route.name', 'media-library.file'));
+    }
+
+    /**
+     * The routes restricted files are served from (SPEC-0103 §5.4). They are
+     * `signed` like the public ones, but the addresses are temporary, and they
+     * run inside the host's session middleware (`web` by default) because the
+     * controllers ask who is signed in. They are separate routes so that the
+     * public ones stay session-free: a Set-Cookie on every public image would
+     * make them uncacheable by a CDN.
+     */
+    private function registerRestrictedRoutes(): void
+    {
+        $router = $this->app->make(Router::class);
+        $configured = MediaConfig::strings('delivery.restricted_middleware');
+        $middleware = [...($configured === [] ? ['web'] : $configured), 'signed'];
+
+        $router
+            ->get(MediaConfig::string('delivery.restricted_file_route.path', 'media/{uuid}/restricted-file'), RestrictedFileController::class)
+            ->middleware($middleware)
+            ->name(MediaConfig::string('delivery.restricted_file_route.name', 'media-library.restricted-file'));
+
+        $router
+            ->get(MediaConfig::string('delivery.restricted_render_route.path', 'media/{uuid}/restricted-render'), RestrictedRenditionController::class)
+            ->middleware($middleware)
+            ->name(MediaConfig::string('delivery.restricted_render_route.name', 'media-library.restricted-render'));
     }
 }

@@ -38,7 +38,8 @@ class MediaThumbnailColumn extends ImageColumn
     {
         $asset = self::assetFor($state);
 
-        return $asset instanceof MediaAsset
+        // A restricted image the signed-in user may not browse has no thumbnail, rather than a column that throws.
+        return $asset instanceof MediaAsset && $asset->isImage() && $asset->isDeliverable()
             ? app(RenditionService::class)->url($asset, $this->thumbnailWidth, $this->thumbnailHeight, RenditionSpec::FIT_CROP)
             : null;
     }

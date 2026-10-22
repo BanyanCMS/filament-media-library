@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Rendering;
 
+use Banyan\FilamentMediaLibrary\Delivery\SignedUrls;
+use Banyan\FilamentMediaLibrary\Exceptions\AccessDenied;
 use Banyan\FilamentMediaLibrary\Exceptions\UnreadableImage;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Derivatives, on demand and cached.
@@ -37,11 +38,17 @@ final readonly class RenditionService
      *
      * @return array{0: string, 1: string}|null contents and media type, or null
      *                                          when the original has gone missing beneath us
+     *                                          or the asset is not an image
      *
      * @throws UnreadableImage
      */
     public function render(MediaAsset $asset, RenditionSpec $spec): ?array
     {
+        // A PDF has no pixels to crop. The file route (SPEC-0103 F2) delivers non-images.
+        if (! $asset->isImage()) {
+            return null;
+        }
+
         $original = $this->media->contents($asset);
 
         if ($original === null) {
@@ -113,12 +120,17 @@ final readonly class RenditionService
      * disk, so they must be ones this application issued. Without a signature
      * the endpoint is an open image-resizing service attached to somebody
      * else's storage bill.
+     *
+     * For a file in a members-only or password-protected folder the URL is
+     * short-lived and served by the session-checked route.
+     *
+     * @throws AccessDenied for a restricted file the signed-in user may not browse
      */
     public function url(MediaAsset $asset, ?int $width = null, ?int $height = null, ?string $fit = null): string
     {
         $spec = RenditionSpec::make($width, $height, $fit, $this->maxDimension);
 
-        return URL::signedRoute(MediaConfig::string('route.name', 'media-library.render'), array_filter([
+        return SignedUrls::make($asset, MediaConfig::string('route.name', 'media-library.render'), MediaConfig::string('delivery.restricted_render_route.name', 'media-library.restricted-render'), array_filter([
             'uuid' => $asset->uuid,
             'w' => $spec->width,
             'h' => $spec->height,

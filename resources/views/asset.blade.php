@@ -22,6 +22,7 @@
         @endif
 
         <div class="bn-media__detail">
+            @if ($asset->isImage())
             <x-filament::section :heading="__('media-library::media.detail.focal_heading')">
                 <p id="bn-media-focal-help" class="bn-media__meta bn-media__focal-help">{{ __('media-library::media.detail.focal_help') }}</p>
 
@@ -129,11 +130,77 @@
                     </div>
                 </div>
             </x-filament::section>
+            @else
+                {{-- Not an image: no crop, no focal point. Each kind gets the preview a browser can do
+                     natively; everything else an icon and a Download button. No inline script or style. --}}
+                <x-filament::section :heading="__('media-library::media.detail.preview')">
+                    @php
+                        $isPdf = $asset->mime_type === 'application/pdf';
+                        $fileUrl = $asset->fileUrl();
+                    @endphp
+
+                    @if ($isPdf)
+                        <iframe
+                            class="bn-media__pdf"
+                            src="{{ $fileUrl }}"
+                            title="{{ __('media-library::media.preview.pdf_title', ['name' => $asset->displayName()]) }}"
+                        ></iframe>
+                    @elseif ($asset->kind === \Banyan\FilamentMediaLibrary\Enums\MediaKind::Video)
+                        <video class="bn-media__player" controls preload="metadata" src="{{ $fileUrl }}">
+                            @if (($captionsUrl = $asset->captionsUrl()) !== null)
+                                <track kind="captions" src="{{ $captionsUrl }}" label="{{ __('media-library::media.preview.captions_label') }}">
+                            @endif
+                            {{ __('media-library::media.preview.video_unsupported') }}
+                        </video>
+                    @elseif ($asset->kind === \Banyan\FilamentMediaLibrary\Enums\MediaKind::Audio)
+                        <audio class="bn-media__player" controls preload="metadata" src="{{ $fileUrl }}">
+                            {{ __('media-library::media.preview.audio_unsupported') }}
+                        </audio>
+                    @else
+                        <div class="bn-media__kind-icon bn-media__kind-icon--large">
+                            <x-filament::icon :icon="$asset->kind->icon()" aria-hidden="true" />
+                            <span>{{ $asset->kind->label() }} · {{ $asset->humanSize() }}</span>
+                        </div>
+                    @endif
+
+                    <p class="bn-media__preview-links">
+                        @if ($isPdf)
+                            @if ($asset->page_count !== null)
+                                <span class="bn-media__meta">{{ trans_choice('media-library::media.preview.pages', $asset->page_count, ['count' => $asset->page_count]) }}</span>
+                            @endif
+                            <a class="bn-media__link" href="{{ $fileUrl }}" target="_blank" rel="noopener">{{ __('media-library::media.preview.open_tab') }}</a>
+                        @endif
+                        <x-filament::button tag="a" size="sm" color="gray" icon="heroicon-o-arrow-down-tray" :href="$asset->downloadUrl()">
+                            {{ __('media-library::media.preview.download') }}
+                        </x-filament::button>
+                    </p>
+
+                    @if (filled($asset->transcript))
+                        <details class="bn-media__transcript" open>
+                            <summary>{{ __('media-library::media.preview.transcript') }}</summary>
+                            <p>{{ $asset->transcript }}</p>
+                        </details>
+                    @endif
+                </x-filament::section>
+            @endif
 
             <x-filament::section :heading="__('media-library::media.detail.facts_heading')">
                 <dl class="bn-media__facts">
-                    <dt>{{ __('media-library::media.detail.fact_alt') }}</dt>
-                    <dd>{{ $asset->alt_text }}</dd>
+                    <dt>{{ __('media-library::media.detail.fact_kind') }}</dt>
+                    <dd>{{ $asset->kind->label() }}</dd>
+
+                    @if ($asset->isImage())
+                        <dt>{{ __('media-library::media.detail.fact_alt') }}</dt>
+                        <dd>{{ $asset->alt_text }}</dd>
+                    @else
+                        <dt>{{ __('media-library::media.detail.fact_title') }}</dt>
+                        <dd>{{ $asset->title }}</dd>
+                    @endif
+
+                    @if (\Banyan\FilamentMediaLibrary\Support\MediaConfig::foldersEnabled())
+                        <dt>{{ __('media-library::media.folders.fact_folder') }}</dt>
+                        <dd>{{ $this->folderLabel($asset) ?? __('media-library::media.folders.fact_folder_root') }}</dd>
+                    @endif
 
                     <dt>{{ __('media-library::media.detail.fact_filename') }}</dt>
                     <dd>{{ $asset->filename }}</dd>
@@ -141,8 +208,25 @@
                     <dt>{{ __('media-library::media.detail.fact_type') }}</dt>
                     <dd>{{ $asset->mime_type }}</dd>
 
-                    <dt>{{ __('media-library::media.detail.fact_dimensions') }}</dt>
-                    <dd>{{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }}</dd>
+                    @if ($asset->isImage() || $asset->dimensions() !== null)
+                        <dt>{{ __('media-library::media.detail.fact_dimensions') }}</dt>
+                        <dd>{{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }}</dd>
+                    @endif
+
+                    @if ($asset->page_count !== null)
+                        <dt>{{ __('media-library::media.detail.fact_pages') }}</dt>
+                        <dd>{{ $asset->page_count }}</dd>
+                    @endif
+
+                    @if ($asset->duration_seconds !== null)
+                        <dt>{{ __('media-library::media.detail.fact_duration') }}</dt>
+                        <dd>{{ gmdate($asset->duration_seconds >= 3600 ? 'G:i:s' : 'i:s', $asset->duration_seconds) }}</dd>
+                    @endif
+
+                    @if ($asset->kind === \Banyan\FilamentMediaLibrary\Enums\MediaKind::Video && $asset->captions !== null && $asset->captions->isDeliverable())
+                        <dt>{{ __('media-library::media.detail.fact_captions') }}</dt>
+                        <dd>{{ $asset->captions->displayName() }}</dd>
+                    @endif
 
                     <dt>{{ __('media-library::media.detail.fact_size') }}</dt>
                     <dd>{{ $asset->humanSize() }}</dd>

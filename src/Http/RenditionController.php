@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Http;
 
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,12 +21,32 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  */
 final class RenditionController
 {
-    public function __invoke(Request $request, string $uuid, RenditionService $renditions): SymfonyResponse
+    public function __invoke(Request $request, string $uuid, RenditionService $renditions, PdfThumbnailService $pdfs): SymfonyResponse
     {
         $asset = MediaAsset::query()->where('uuid', $uuid)->first();
 
-        if (! $asset instanceof MediaAsset) {
+        // Restricted files are served only by the session-checked route; see FileController.
+        if (! $asset instanceof MediaAsset || $asset->isRestricted()) {
             return new Response('', SymfonyResponse::HTTP_NOT_FOUND);
+        }
+
+        return $this->serve($request, $asset, $renditions, $pdfs, private: false);
+    }
+
+    /** Send the rendition; `$private` marks a restricted file's answer as not cacheable by anyone else. */
+    public function serve(Request $request, MediaAsset $asset, RenditionService $renditions, PdfThumbnailService $pdfs, bool $private): SymfonyResponse
+    {
+        $cache = $private ? 'private, no-store' : 'public, max-age=31536000, immutable';
+
+        // A PDF has no pixels to crop, but the grid may ask for its first page.
+        if ($asset->mime_type === 'application/pdf') {
+            $png = $pdfs->render($asset, $this->dimension($request->query('w')));
+
+            return $png === null ? new Response('', SymfonyResponse::HTTP_NOT_FOUND) : new Response($png, SymfonyResponse::HTTP_OK, [
+                'Content-Type' => 'image/png',
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control' => $cache,
+            ]);
         }
 
         $spec = $renditions->spec(
@@ -47,7 +68,7 @@ final class RenditionController
             // Immutable is honest here: the URL carries the version and the
             // focal point (`v`, signed with the rest), so a new file or a new
             // crop is a new address and this one never describes other pixels.
-            'Cache-Control' => 'public, max-age=31536000, immutable',
+            'Cache-Control' => $cache,
             'Content-Length' => (string) strlen($contents),
         ]);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Examples\Articles\Listeners;
 
+use Banyan\FilamentMediaLibrary\Events\MediaAssetEvent;
 use Banyan\FilamentMediaLibrary\Events\MediaEvent;
 use Banyan\FilamentMediaLibrary\Examples\Articles\Models\MediaAuditEntry;
 
@@ -19,6 +20,11 @@ final class RecordMediaAudit
 {
     public function handle(MediaEvent $event): void
     {
+        // The example's table is keyed by asset; folder events (`MediaFolderEvent`) are not recorded here.
+        if (! $event instanceof MediaAssetEvent) {
+            return;
+        }
+
         MediaAuditEntry::query()->create([
             'event' => $event->name(),
             'actor_id' => $event->actorId(),
