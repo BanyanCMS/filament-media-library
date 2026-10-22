@@ -223,6 +223,44 @@ it('streams the whole file from a remote disk that cannot issue temporary urls',
         ->and($response->headers->get('X-Content-Type-Options'))->toBe('nosniff');
 });
 
+it('streams an embed from this origin instead of redirecting it to the storage host', function (): void {
+    $asset = videoAsset();
+    moveToDisk($asset, remoteDisk('remote-test', true));
+    $bytes = Files::mp4().str_repeat('0123456789', 50);
+
+    foreach (['iframe', 'video', 'audio', 'embed'] as $destination) {
+        $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => $destination])->assertOk()->assertHeader('Accept-Ranges', 'bytes');
+    }
+
+    $partial = $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => 'video', 'Range' => 'bytes=10-19'])->assertStatus(206);
+
+    expect($partial->streamedContent())->toBe(substr($bytes, 10, 10))
+        ->and($partial->headers->get('Content-Range'))->toBe('bytes 10-19/'.strlen($bytes))
+        ->and($partial->headers->get('Content-Length'))->toBe('10')
+        ->and($partial->headers->get('X-Content-Type-Options'))->toBe('nosniff')
+        ->and($partial->headers->get('Vary'))->toBe('Sec-Fetch-Dest');
+
+    $suffix = $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => 'video', 'Range' => 'bytes=-5'])->assertStatus(206);
+    expect($suffix->streamedContent())->toBe(substr($bytes, -5));
+
+    $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => 'video', 'Range' => 'bytes=99999-'])->assertStatus(416);
+
+    // A top-level visit or a download still goes to the storage host.
+    $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => 'document'])->assertStatus(302);
+    $this->get($asset->downloadUrl())->assertStatus(302);
+});
+
+it('can always or never redirect to storage', function (): void {
+    $asset = documentAsset();
+    moveToDisk($asset, remoteDisk('remote-test', true));
+
+    config(['media-library.delivery.redirect_to_storage' => 'never']);
+    expect($this->get($asset->downloadUrl())->assertOk()->streamedContent())->toBe(Files::pdf());
+
+    config(['media-library.delivery.redirect_to_storage' => 'always']);
+    $this->get($asset->fileUrl(), ['Sec-Fetch-Dest' => 'iframe'])->assertStatus(302);
+});
+
 it('uses the configured route name and path', function (): void {
     expect(route('media-library.file', ['uuid' => 'abc']))->toEndWith('/media/abc/file');
 });

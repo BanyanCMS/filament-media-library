@@ -591,7 +591,7 @@ What the response always carries:
 | Disk | What the route does |
 | --- | --- |
 | Local (`public`, `local`) | Streams the file with Symfony's `BinaryFileResponse`, which answers `Range` requests. Seeking works |
-| One with temporary URLs (S3, R2) | Answers `302` to a short-lived provider URL (`delivery.temporary_url_minutes`, default 5) with the content type and disposition set on it. The provider does the ranging |
+| One with temporary URLs (S3, R2) | A download or a top-level visit gets a `302` to a short-lived provider URL (`delivery.temporary_url_minutes`, default 5) with the content type and disposition set on it, and the provider does the ranging. An **embed** (the PDF preview, `<video>`, `<audio>`, which browsers mark with `Sec-Fetch-Dest`) is streamed from your own origin with `Range` support instead, so a strict CSP (`frame-src 'self'`, `media-src 'self'`) does not block it. `delivery.redirect_to_storage`: `downloads` (default), `always` or `never` |
 | Anything else | Streams the whole file. There is no `Range` support, so video plays but does not seek |
 
 A members-only or password-protected file is served from different, session-checked routes with short-lived addresses ([Folder access](#files-in-restricted-folders-and-public-pages)). `fileUrl()` and `downloadUrl()` pick the right one for you, and throw `AccessDenied` for a restricted file the signed-in user may not browse, so an empty `src` can never be printed by accident. Check `$asset->isDeliverable()` first when you cannot be sure.
@@ -1167,6 +1167,7 @@ Publish the config with `php artisan vendor:publish --tag=media-library-config`.
 | `delivery.file_route.path` | `media/{uuid}/file` | The signed file route (must keep `{uuid}`) |
 | `delivery.file_route.name` | `media-library.file` | File route name |
 | `delivery.temporary_url_minutes` | `5` | How long the temporary URL a remote disk (S3, R2) is redirected to stays valid |
+| `delivery.redirect_to_storage` | `downloads` | `downloads`: redirect downloads to the storage host but stream embeds from this origin (CSP-safe); `always`; `never` |
 | `delivery.restricted_url_minutes` | `10` | How long the address of a file in a restricted folder works |
 | `delivery.restricted_middleware` | `['web']` | Middleware of the restricted routes; they need the visitor's session |
 | `delivery.restricted_file_route.path` | `media/{uuid}/restricted-file` | Route for restricted files |

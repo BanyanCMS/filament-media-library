@@ -94,6 +94,14 @@ return [
         'temporary_url_minutes' => 5,
 
         /*
+         * When a disk can issue temporary URLs (S3, R2): 'downloads' redirects
+         * downloads and top-level visits to one but streams embeds (the PDF
+         * preview, <video>, <audio>) from this origin, so a strict CSP
+         * (frame-src/media-src 'self') still allows them; 'always' or 'never'.
+         */
+        'redirect_to_storage' => 'downloads',
+
+        /*
          * Files in members-only and password-protected folders (SPEC-0103 §5.4):
          * their addresses expire after this many minutes, are only issued to a
          * user who may browse the folder, and are served by these routes, which
