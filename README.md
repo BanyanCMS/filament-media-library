@@ -19,6 +19,7 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 ## Contents
 
 - [What you get](#what-you-get)
+- [Inspiration and how it compares](#inspiration-and-how-it-compares)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick start: an image on an article in five steps](#quick-start-an-image-on-an-article-in-five-steps)
@@ -60,6 +61,44 @@ It is a standalone Filament plugin. It needs no other Banyan package. It was ext
 - **No queue, no scheduler, no JavaScript build.** Renditions are made on request. Expiry is computed when you read it.
 
 ![One asset: the focal point crosshair with two sample crops, details, where it is used and the version history](docs/images/asset.png)
+
+## Inspiration and how it compares
+
+### Where the ideas come from
+
+This library was built for Banyan, a CMS aimed at government, public bodies and schools. Those organisations are moving away from WordPress and looking at Drupal or Umbraco as the alternative. The design borrows from those systems, and from image services:
+
+- **Drupal Media and the Focal Point module.** A media item is a reusable entity, not a file attached to one record, and every crop keeps the point an editor chose.
+- **Umbraco's media section.** One shared library for the whole site, with "where is this used?" answered before anything is deleted.
+- **The WordPress media library.** The grid, the per-asset page and alt text as a first-class field. Here alt text is required, not optional.
+- **Image CDNs such as imgix and Cloudinary.** Renditions are made on request from a URL, cached, and signed so the URL cannot be abused as a free resizing service.
+- **Digital asset management (DAM) practice.** Licence expiry, version history instead of overwriting, and an audit trail of who changed what. These are the governance needs of public-sector content.
+
+The principle that runs through all of it: **an image is a governed asset**, not a file upload. It has an accessible description, a rights window, a history and a list of the pages that depend on it.
+
+### How it differs from other Filament media plugins
+
+All of these are good tools that solve different problems. This summary comes from each project's public page as of October 2026; check them for current details.
+
+| | **This library** | [Media Library Pro](https://filamentphp.com/plugins/ralphjsmit-media-library-manager) (Ralph J. Smit) | [Crumbls Filament Media Library](https://github.com/Crumbls/filament-media-library) | [TomatoPHP Media Manager](https://github.com/tomatophp/filament-media-manager) | [Media Action](https://filamentphp.com/plugins/hugomyb-media-action) (hugomyb) |
+| --- | --- | --- | --- | --- | --- |
+| **What it is** | A governed image library: pages, picker, renditions, events | A media manager for the admin panel | A WordPress-style media library | A folder-based file manager | A preview action, not a library |
+| **Licence** | MIT | Paid (listed at €99) | MIT | MIT | MIT |
+| **Storage** | Its own tables (`media_assets`, versions, tags, usages). No spatie/laravel-medialibrary | Built on spatie/laravel-medialibrary | spatie/laravel-medialibrary plus its own `media_library` and `mediables` tables | spatie/laravel-medialibrary plus folders | None; it plays a URL you pass in |
+| **Organising** | Tags, search, licence filters | Folders, filters, sorters | Grid, search, type filter | Folders and sub-folders, shared or password-protected | n/a |
+| **Alt text** | **Required** (database, service and form) | Not listed | Optional field | Not listed | n/a |
+| **Cropping** | Focal point: every rendition crops around it automatically | Not listed | Manual crop, rotate and flip (CropperJS) | Responsive images; no crop tool listed | n/a |
+| **Replacing a file** | Adds a version; old files kept; URLs change, so caches never show old pixels | Not listed | Not listed | Not listed | n/a |
+| **"Where is it used"** | Usage tracking; deleting a used asset is refused | Not listed | Polymorphic attachments | Model trait | n/a |
+| **Licence and rights expiry** | Warnings, "still used" counts, picker hides expired assets | Not listed | Not listed | Not listed | n/a |
+| **Audit and integration** | Events inside the transaction (an audit failure rolls back); Banyan webhooks | Custom actions | Roadmap | Folders API | n/a |
+| **Permissions** | Gate abilities; managing is closed until you define it | Permissions | Not listed | Per-user folder access | n/a |
+| **Image engine** | Laravel's own `Illuminate\Image` | Spatie conversions | Spatie conversions | Spatie conversions | n/a |
+| **File types** | Images only | Files | Files | Files | Video, audio, PDF and images (preview) |
+
+**When to choose another plugin.** You want folders as the main way to organise files. You manage documents, video or audio as well as images. You already use spatie/laravel-medialibrary collections on your models. You only need to preview a file in a modal; Media Action does that and composes with any library, this one included.
+
+**When to choose this one.** Accessibility and rights are requirements, not nice-to-haves. The same image is reused on many pages. Replacing or deleting an image must be safe and traceable. You need crops that keep the subject in frame without an editor cropping every size by hand.
 
 ## Requirements
 
