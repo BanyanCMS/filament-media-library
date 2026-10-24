@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * SPEC-0103 §3.2, §3.3 and `folder_id` of §3.1: folders and sub-folders.
+ * Folders and sub-folders.
  *
  * `path` is the materialised list of ids from the top-level folder down to the
  * folder itself ("/12/45/"), so a whole subtree is one indexed prefix match.

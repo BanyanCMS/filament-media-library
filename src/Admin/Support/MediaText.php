@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\Lang;
  *
  * A namespace of this package's own, never 'banyan': `addNamespace()` replaces
  * the path registered for a namespace, so sharing one with the admin package
- * would silently unload its translations depending on provider order — the same
- * trap `packages/search` documents.
+ * would unload its translations, depending on provider order.
  */
 trait MediaText
 {
@@ -57,7 +56,7 @@ trait MediaText
 
     /**
      * Prefer a key another package owns, falling back to this package's copy of
-     * the same string — so a headless install without the panel package still
+     * the same string, so a headless install without the panel package still
      * reads correctly.
      */
     protected static function sharedText(string $foreignKey, string $ownKey): string

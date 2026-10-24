@@ -153,8 +153,6 @@ return [
         'audio_unsupported' => '你的浏览器无法播放此音频。',
         'captions_label' => '字幕',
         'transcript' => '逐字稿',
-        'none' => '此类文件没有预览。',
-        'pdf_thumbnail' => ':name 的第一页',
     ],
     'file' => [
         'link' => ':title（:format，:size）',
@@ -246,9 +244,7 @@ return [
         'wrong_password' => '密码不正确。',
         'throttled' => '错误次数过多，请在 :minutes 分钟后再试。',
         'restricted_file' => '受限文件',
-        'restricted_label' => '受限文件',
         'restricted_marker' => '受限',
         'destination_refused' => '你无法将文件放入该文件夹。',
-        'skipped' => '部分所选文件因你无权更改而保持原位。',
     ],
 ];

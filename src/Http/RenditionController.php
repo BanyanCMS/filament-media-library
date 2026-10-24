@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Http;
 
+use Banyan\FilamentMediaLibrary\Delivery\DeliveryRoutes;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
@@ -23,7 +24,7 @@ final class RenditionController
 {
     public function __invoke(Request $request, string $uuid, RenditionService $renditions, PdfThumbnailService $pdfs): SymfonyResponse
     {
-        $asset = MediaAsset::query()->where('uuid', $uuid)->first();
+        $asset = MediaAsset::findByUuid($uuid);
 
         // Restricted files are served only by the session-checked route; see FileController.
         if (! $asset instanceof MediaAsset || $asset->isRestricted()) {
@@ -36,10 +37,10 @@ final class RenditionController
     /** Send the rendition; `$private` marks a restricted file's answer as not cacheable by anyone else. */
     public function serve(Request $request, MediaAsset $asset, RenditionService $renditions, PdfThumbnailService $pdfs, bool $private): SymfonyResponse
     {
-        $cache = $private ? 'private, no-store' : 'public, max-age=31536000, immutable';
+        $cache = DeliveryRoutes::cacheControl($private);
 
         // A PDF has no pixels to crop, but the grid may ask for its first page.
-        if ($asset->mime_type === 'application/pdf') {
+        if ($asset->isPdf()) {
             $png = $pdfs->render($asset, $this->dimension($request->query('w')));
 
             return $png === null ? new Response('', SymfonyResponse::HTTP_NOT_FOUND) : new Response($png, SymfonyResponse::HTTP_OK, [

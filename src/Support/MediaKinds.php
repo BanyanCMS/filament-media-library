@@ -7,10 +7,10 @@ namespace Banyan\FilamentMediaLibrary\Support;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 
 /**
- * Typed reads of `media-library.uploads.kinds`, with the SPEC-0103 defaults.
+ * Typed reads of `media-library.uploads.kinds`, with defaults for each kind.
  *
  * Every read falls back per key, not per array. A host that replaces the whole
- * `uploads` array (Banyan's adapter does) or still carries the pre-kinds
+ * `uploads` array or still carries the pre-kinds
  * `uploads.max_size` / `uploads.mime_types` keys therefore keeps a working,
  * image-compatible config: those two legacy keys are read as the image kind's
  * values when `uploads.kinds.image` does not say otherwise.

@@ -7,11 +7,10 @@ namespace Banyan\FilamentMediaLibrary\Delivery;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Exceptions\AccessDenied;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
-use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Illuminate\Support\Str;
 
 /**
- * Addresses and response headers of the file route (SPEC-0103 §4.3).
+ * Addresses and response headers of the file route.
  *
  * Kept apart from the controller so the URL a page embeds and the headers the
  * route answers with are decided in one place, and so a host can build the
@@ -36,8 +35,8 @@ final class FileDelivery
     {
         return SignedUrls::make(
             $asset,
-            MediaConfig::string('delivery.file_route.name', 'media-library.file'),
-            MediaConfig::string('delivery.restricted_file_route.name', 'media-library.restricted-file'),
+            DeliveryRoutes::fileName(),
+            DeliveryRoutes::restrictedFileName(),
             array_filter([
                 'uuid' => $asset->uuid,
                 'v' => $asset->current_version_id ?? 0,
@@ -50,7 +49,7 @@ final class FileDelivery
     public static function isInline(MediaAsset $asset): bool
     {
         return in_array($asset->kind, [MediaKind::Image, MediaKind::Video, MediaKind::Audio], true)
-            || $asset->mime_type === 'application/pdf';
+            || $asset->isPdf();
     }
 
     /**

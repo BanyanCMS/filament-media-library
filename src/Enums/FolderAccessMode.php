@@ -7,7 +7,7 @@ namespace Banyan\FilamentMediaLibrary\Enums;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 
 /**
- * How a folder is protected (SPEC-0103 §5.2).
+ * How a folder is protected.
  *
  * `inherit` is the stored default: the folder takes whatever its nearest
  * protected ancestor says, and a top-level `inherit` is `shared`.

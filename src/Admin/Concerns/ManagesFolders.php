@@ -16,9 +16,7 @@ use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
-use Throwable;
 
 /**
  * The folder write actions of the library page.
@@ -73,15 +71,11 @@ trait ManagesFolders
                     return;
                 }
 
-                try {
+                $this->attempt(self::text('media.folders.created'), self::text('media.folders.create_failed'), function () use ($data, $actorId): void {
                     $parent = $this->currentFolder();
                     $this->assertDestinationAllowed($parent);
                     app(MediaFolderService::class)->create($parent, (string) ($data['name'] ?? ''), $actorId, $parent instanceof MediaFolder ? null : $this->currentSiteId());
-
-                    Notification::make()->success()->title(self::text('media.folders.created'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFolderFailure(self::text('media.folders.create_failed'), $e);
-                }
+                });
             });
     }
 
@@ -103,13 +97,9 @@ trait ManagesFolders
                     return;
                 }
 
-                try {
+                $this->attempt(self::text('media.folders.renamed'), self::text('media.folders.rename_failed'), function () use ($folder, $data, $actorId): void {
                     app(MediaFolderService::class)->rename($folder, (string) ($data['name'] ?? ''), $actorId);
-
-                    Notification::make()->success()->title(self::text('media.folders.renamed'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFolderFailure(self::text('media.folders.rename_failed'), $e);
-                }
+                });
             });
     }
 
@@ -134,19 +124,17 @@ trait ManagesFolders
                     return;
                 }
 
-                try {
+                $this->attempt(self::text('media.folders.moved'), self::text('media.folders.move_failed'), function () use ($folder, $data, $actorId): bool {
                     $destination = $this->folderFrom($data['destination'] ?? null);
 
                     if (! $this->usageConfirmed($destination, $folder->subtreeAssets(), $data)) {
-                        return;
+                        return false;
                     }
 
                     app(MediaFolderService::class)->move($folder, $destination, $actorId);
 
-                    Notification::make()->success()->title(self::text('media.folders.moved'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFolderFailure(self::text('media.folders.move_failed'), $e);
-                }
+                    return true;
+                });
             });
     }
 
@@ -189,7 +177,7 @@ trait ManagesFolders
 
                 $parent = $folder->parent?->uuid;
 
-                try {
+                $this->attempt(self::text('media.folders.deleted'), self::text('media.folders.delete_failed'), function () use ($folder, $data, $actorId, $parent): void {
                     $service = app(MediaFolderService::class);
 
                     ($data['move_contents'] ?? false) === true
@@ -197,11 +185,7 @@ trait ManagesFolders
                         : $service->delete($folder, $actorId);
 
                     $this->openFolder($parent);
-
-                    Notification::make()->success()->title(self::text('media.folders.deleted'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFolderFailure(self::text('media.folders.delete_failed'), $e);
-                }
+                });
             });
     }
 
@@ -225,22 +209,24 @@ trait ManagesFolders
                     return;
                 }
 
-                try {
-                    $destination = $this->folderFrom($data['destination'] ?? null);
-                    $assets = $this->selectedAssets();
+                $this->attempt(
+                    static fn (mixed $moved): string => self::choice('media.folders.assets_moved', is_int($moved) ? $moved : 0),
+                    self::text('media.folders.move_failed'),
+                    function () use ($data, $actorId): int|false {
+                        $destination = $this->folderFrom($data['destination'] ?? null);
+                        $assets = $this->selectedAssets();
 
-                    if (! $this->usageConfirmed($destination, $assets, $data)) {
-                        return;
-                    }
+                        if (! $this->usageConfirmed($destination, $assets, $data)) {
+                            return false;
+                        }
 
-                    $moved = app(MediaFolderService::class)->moveAssets($assets, $destination, $actorId);
+                        $moved = app(MediaFolderService::class)->moveAssets($assets, $destination, $actorId);
 
-                    $this->selected = [];
+                        $this->selected = [];
 
-                    Notification::make()->success()->title(self::choice('media.folders.assets_moved', $moved))->send();
-                } catch (Throwable $e) {
-                    $this->reportFolderFailure(self::text('media.folders.move_failed'), $e);
-                }
+                        return $moved;
+                    },
+                );
             });
     }
 
@@ -284,10 +270,5 @@ trait ManagesFolders
     private function folderActor(): ?string
     {
         return $this->canManageFolders() ? MediaLibraryGate::actorId() : null;
-    }
-
-    private function reportFolderFailure(string $title, Throwable $e): void
-    {
-        Notification::make()->danger()->title($title)->body($e->getMessage())->send();
     }
 }

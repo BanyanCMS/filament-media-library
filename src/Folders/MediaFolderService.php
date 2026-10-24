@@ -53,7 +53,7 @@ use Illuminate\Support\Str;
  */
 final readonly class MediaFolderService
 {
-    private const NAME_MAX = 120;
+    private const int NAME_MAX = 120;
 
     public const int PASSWORD_MIN = 8;
 
@@ -65,8 +65,8 @@ final readonly class MediaFolderService
     /**
      * Create a folder under `$parent`, or at the top level when null.
      *
-     * `$siteId` tags a top-level folder with the host's site (SPEC-0103 §9,
-     * decision 4); a folder with a parent belongs to its root's site, so it is ignored there.
+     * `$siteId` tags a top-level folder with the host's site;
+     * a folder with a parent belongs to its root's site, so it is ignored there.
      *
      * @throws MediaException
      */
@@ -93,7 +93,7 @@ final readonly class MediaFolderService
                 'name' => $name,
                 'path' => '/',
                 'depth' => $depth,
-                'access' => 'inherit',
+                'access' => FolderAccessMode::Inherit->value,
                 'owner_id' => $actor,
                 'created_by' => $actor,
                 'site_id' => $parent instanceof MediaFolder ? null : $siteId,
@@ -223,7 +223,7 @@ final readonly class MediaFolderService
      * has one; omitted there, the current password stays. It is stored only as a
      * `Hash::make()` hash and appears in no event, message or log. A new hash is
      * a new fingerprint, so every unlock held in a session stops working
-     * (SPEC-0103 §5.3: changing the password relocks the folder for everyone);
+     * (changing the password relocks the folder for everyone);
      * leaving `password` mode discards the hash. Members are kept across mode
      * changes and ignored unless the mode is `members`.
      *

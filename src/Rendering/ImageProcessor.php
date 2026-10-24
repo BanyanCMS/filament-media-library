@@ -15,7 +15,7 @@ use Throwable;
  * Built on Laravel's own image component (`Illuminate\Image`, the `Image`
  * facade), so a host configures drivers the Laravel way and nothing here talks
  * to a driver directly. Keeping it in one class keeps the focal-point
- * arithmetic in one place — and that arithmetic is the reason this class
+ * arithmetic in one place. That arithmetic is the reason this class
  * exists: `cover()` only centres, while a focal point is a continuous
  * fraction, so the crop rectangle is computed here and handed to `crop()`.
  */
@@ -102,7 +102,7 @@ final readonly class ImageProcessor
      * the focal point sits near an edge.
      *
      * Clamping rather than letting the rectangle hang off the edge is what makes
-     * a focal point at (0.95, 0.05) — a logo in the top-right corner — produce a
+     * a focal point at (0.95, 0.05), a logo in the top-right corner, produce a
      * crop that contains the logo, instead of one padded with background.
      *
      * @return array{0: int<1, max>, 1: int<1, max>, 2: int, 3: int} width, height, x, y

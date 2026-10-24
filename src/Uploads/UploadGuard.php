@@ -23,11 +23,11 @@ use RuntimeException;
 use ZipArchive;
 
 /**
- * SPEC-0103 §4.2: everything that must hold about the bytes before they are written.
+ * Everything that must hold about the bytes before they are written.
  *
  * Trust nothing the client said. The type comes from the bytes, the extension
  * has to agree with it, and only then do the size, the kind-specific checks and
- * the scan hook run — cheapest and most decisive first, the scanner last
+ * the scan hook run, cheapest and most decisive first, the scanner last
  * because it is the slowest and the only one that can be offline.
  *
  * Throws; writes nothing. The repository calls this before it opens its

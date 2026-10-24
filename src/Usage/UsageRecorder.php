@@ -59,7 +59,7 @@ final readonly class UsageRecorder
         });
     }
 
-    /** Drop every usage a model holds — call it when the model is deleted. */
+    /** Drop every usage a model holds, call it when the model is deleted. */
     public function forget(Model $owner): void
     {
         $this->table()

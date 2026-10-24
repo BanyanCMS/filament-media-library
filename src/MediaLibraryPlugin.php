@@ -101,7 +101,7 @@ final class MediaLibraryPlugin implements Plugin
 
     /**
      * The library page class the current panel routes, so links follow a swap.
-     * Panels that add the pages without this plugin (Banyan does) get the defaults.
+     * Panels that add the pages without this plugin get the defaults.
      *
      * @return class-string<MediaLibraryPage>
      */

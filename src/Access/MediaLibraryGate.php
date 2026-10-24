@@ -30,7 +30,7 @@ final class MediaLibraryGate
     private static ?Closure $manageAllFallback = null;
 
     /**
-     * Decide "may manage" when the manage ability is not defined — for an app
+     * Decide "may manage" when the manage ability is not defined, for an app
      * whose permissions live somewhere a Gate ability does not reach.
      *
      * @param  (Closure(): bool)|null  $callback
@@ -42,7 +42,7 @@ final class MediaLibraryGate
 
     /**
      * Decide "may manage everything" (every folder, restricted or not) when the
-     * manage-all ability is not defined. Banyan maps it to superusers.
+     * manage-all ability is not defined. A host usually maps it to superusers.
      *
      * @param  (Closure(): bool)|null  $callback
      */
@@ -134,7 +134,7 @@ final class MediaLibraryGate
         return is_int($id) || is_string($id) ? (string) $id : '';
     }
 
-    /** The acting user's id as a string, for event attribution — null when unauthenticated. */
+    /** The acting user's id as a string, for event attribution, null when unauthenticated. */
     public static function actorId(): ?string
     {
         $id = auth()->id();

@@ -8,7 +8,7 @@ namespace Banyan\FilamentMediaLibrary\Rendering;
  * One request for a derivative: a box and how to fill it.
  *
  * Clamped on construction rather than validated at the controller, because the
- * render route is a public, unauthenticated (if signed) resource amplifier —
+ * render route is a public, unauthenticated (if signed) resource amplifier.
  * `?w=100000` must cost nothing more than `?w=4096`, and it must cost that in
  * every caller, not only in the one that remembered to check.
  */
@@ -35,8 +35,8 @@ final readonly class RenditionSpec
             return new self(null, null, self::FIT_CONTAIN);
         }
 
-        // A single dimension cannot be cropped to — there is no second edge to
-        // crop against — so it always means "scale to this".
+        // A single dimension cannot be cropped to, as there is no second edge to
+        // crop against, so it always means "scale to this".
         $fit = ($width === null || $height === null)
             ? self::FIT_CONTAIN
             : ($fit === self::FIT_CONTAIN ? self::FIT_CONTAIN : self::FIT_CROP);

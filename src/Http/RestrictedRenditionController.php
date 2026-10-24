@@ -13,7 +13,7 @@ use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
- * GET /media/{uuid}/restricted-render — a rendition of a file in a restricted folder.
+ * GET /media/{uuid}/restricted-render: a rendition of a file in a restricted folder.
  * The same checks as {@see RestrictedFileController}.
  */
 final class RestrictedRenditionController

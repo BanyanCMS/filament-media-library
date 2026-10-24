@@ -24,7 +24,7 @@ return [
 
     'uploads' => [
         /*
-         * What each kind of file may be (SPEC-0103). Types are matched against
+         * What each kind of file may be. Types are matched against
          * what the bytes are, never the extension or the browser's claim; a
          * type not listed here is refused. `max_size` is in kilobytes, matching
          * Filament's and Laravel's `max:` rule.
@@ -48,7 +48,7 @@ return [
                     'application/vnd.oasis.opendocument.presentation',
                     'text/csv',
                     'text/plain',
-                    // WebVTT, for a video's captions (SPEC-0103 §8). Detected only
+                    // WebVTT, for a video's captions. Detected only
                     // when the file starts with WEBVTT.
                     'text/vtt',
                 ],
@@ -102,7 +102,7 @@ return [
         'redirect_to_storage' => 'downloads',
 
         /*
-         * Files in members-only and password-protected folders (SPEC-0103 §5.4):
+         * Files in members-only and password-protected folders:
          * their addresses expire after this many minutes, are only issued to a
          * user who may browse the folder, and are served by these routes, which
          * run the middleware below (they need the visitor's session) and check
@@ -164,7 +164,7 @@ return [
     ],
 
     /*
-     * Folders and sub-folders (SPEC-0103 §5). Set `enabled` to false for a flat
+     * Folders and sub-folders. Set `enabled` to false for a flat
      * library: all folder UI is hidden and every asset reads as being at the root.
      * `max_depth` caps nesting; `unlock_minutes` is how long an unlocked
      * password-protected folder stays open. `member_label` is the user attribute

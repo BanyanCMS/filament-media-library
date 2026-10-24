@@ -24,7 +24,7 @@ trait GuardsRestrictedMoves
 {
     /**
      * How many of these files are still in use, when `$to` is a restricted
-     * folder: public pages cannot show a file from there (SPEC-0103 §5.4), so
+     * folder: public pages cannot show a file from there, so
      * the editor must be told and must confirm. Zero when nothing is lost.
      *
      * @param  iterable<MediaAsset>|null  $assets

@@ -135,7 +135,7 @@
                      natively; everything else an icon and a Download button. No inline script or style. --}}
                 <x-filament::section :heading="__('media-library::media.detail.preview')">
                     @php
-                        $isPdf = $asset->mime_type === 'application/pdf';
+                        $isPdf = $asset->isPdf();
                         $fileUrl = $asset->fileUrl();
                     @endphp
 

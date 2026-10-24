@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * SPEC-0103 §3.1: the library holds files, not only images.
+ * The library holds files, not only images.
  *
  * `kind` defaults to `image`, so every existing row reads as the image it
  * always was. `alt_text` becomes nullable because a PDF has none; the rule

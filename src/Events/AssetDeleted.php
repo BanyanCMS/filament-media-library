@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Events;
 
-/** An asset, its versions and its renditions were removed. The usage count at that moment is kept, because no later query can reconstruct it. */
+/**
+ * An asset, its versions and its renditions were removed.
+ *
+ * An asset that is in use cannot be deleted, so `usageCount` is always 0. The
+ * property and the `usage_count` payload key stay so existing listeners keep working.
+ */
 final readonly class AssetDeleted implements MediaAssetEvent
 {
     use AssetSubject;

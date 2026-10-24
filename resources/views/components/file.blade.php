@@ -6,7 +6,7 @@
 ])
 
 {{--
-    One asset, rendered the way its kind wants (SPEC-0103 §4.5). An image gets a
+    One asset, rendered the way its kind wants. An image gets a
     responsive <img>; a document or archive a link whose text says what it is and
     how big (WCAG 2.4.4); a video and an audio file a native player, with captions
     and the transcript when the asset has them. No inline script or style, so a
@@ -15,7 +15,7 @@
     <x-media-library::file :asset="$asset" class="..." />
 --}}
 {{--
-    A file in a members-only or password-protected folder is not for the public (§5.4). When the
+    A file in a members-only or password-protected folder is not for the public. When the
     visitor may not have it, nothing about it is printed: no URL, title or filename, just a marker
     that something is withheld. A signed-in user who may browse the folder gets the file.
 --}}

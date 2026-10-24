@@ -27,7 +27,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
 /**
- * The writer for the four media tables and the disk beneath them.
+ * The writer for the media tables (assets, versions, tags and usages) and the disk beneath them.
  *
  * It owns validation that must hold for every caller (the {@see UploadGuard}
  * pipeline, alt text or title) and the asset/version invariant: a replacement appends a version and
@@ -35,7 +35,7 @@ use Illuminate\Support\Str;
  * superseded file.
  *
  * It dispatches no media events (only the guard's pre-write `AssetUploading`)
- * and does not decide who may call it — both belong
+ * and does not decide who may call it, both belong
  * to {@see MediaGovernanceService}.
  */
 final readonly class MediaRepository
@@ -203,7 +203,7 @@ final readonly class MediaRepository
             throw CompanionNotAllowed::captionsFor($asset->kind);
         }
 
-        if ($captions !== null && $captions->mime_type !== 'text/vtt') {
+        if ($captions !== null && ! $captions->isWebVtt()) {
             throw CompanionNotAllowed::notWebVtt();
         }
 
@@ -274,6 +274,11 @@ final readonly class MediaRepository
      * The live-reference check is inside the transaction and follows a locked
      * asset read. Confirmation in a UI is useful, but cannot be the safety
      * boundary because imports, APIs and queue workers also call repositories.
+     *
+     * A used asset is refused, so a delete that succeeds always finds 0 usages.
+     * The return value is that count, kept so existing callers still compile.
+     *
+     * @return int always 0
      *
      * @throws AssetReferenced
      */
@@ -391,8 +396,8 @@ final readonly class MediaRepository
      * The path carries the version ordinal, so a replacement can never land on
      * the file it replaces even if the two uploads share a filename.
      *
-     * Called inside the write's transaction. If that transaction rolls back —
-     * a listener refusing the change, say — the file is removed with it, so a
+     * Called inside the write's transaction. If that transaction rolls back
+     * (a listener refusing the change, say), the file is removed with it, so a
      * refused upload leaves no orphan on the disk.
      */
     private function write(string $diskName, string $uuid, int $ordinal, string $filename, string $binary): string

@@ -7,6 +7,7 @@ namespace Banyan\FilamentMediaLibrary;
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Delivery\DeliveryRoutes;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpiryReport;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
@@ -37,7 +38,7 @@ use Illuminate\Support\ServiceProvider;
 /**
  * Services, routes, views and translations of the media library.
  *
- * Everything is bound with `singletonIf`/`bindIf`, so an app (or Banyan) that
+ * Everything is bound with `singletonIf`/`bindIf`, so an app that
  * registers its own {@see UsageResolver} first keeps it.
  */
 final class MediaLibraryServiceProvider extends ServiceProvider
@@ -106,7 +107,8 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         ));
 
         // Scoped, not singleton: it caches the folder table, and that copy must not outlive a request
-        // (Octane, queue workers). The folder and member models also flush it on every write.
+        // (Octane, queue workers). The folder model flushes it on every save and delete,
+        // and MediaFolderService flushes it after a member change.
         $this->app->scoped(FolderAccess::class, static fn ($app): FolderAccess => new FolderAccess($app->make(Dispatcher::class)));
 
         $this->app->singleton(MediaExpiryReport::class, static fn ($app): MediaExpiryReport => new MediaExpiryReport(
@@ -147,16 +149,16 @@ final class MediaLibraryServiceProvider extends ServiceProvider
 
     /**
      * `signed`, not `auth`: a rendition URL sits in an <img> a public page
-     * serves to anonymous readers, so it cannot need a session — but its query
+     * serves to anonymous readers, so it cannot need a session. Its query
      * string is an instruction to spend CPU and disk, so it has to be one this
      * application issued.
      */
     private function registerRenderRoute(): void
     {
         $this->app->make(Router::class)
-            ->get(MediaConfig::string('route.path', 'media/{uuid}/render'), RenditionController::class)
+            ->get(DeliveryRoutes::renderPath(), RenditionController::class)
             ->middleware('signed')
-            ->name(MediaConfig::string('route.name', 'media-library.render'));
+            ->name(DeliveryRoutes::renderName());
     }
 
     /**
@@ -167,13 +169,13 @@ final class MediaLibraryServiceProvider extends ServiceProvider
     private function registerFileRoute(): void
     {
         $this->app->make(Router::class)
-            ->get(MediaConfig::string('delivery.file_route.path', 'media/{uuid}/file'), FileController::class)
+            ->get(DeliveryRoutes::filePath(), FileController::class)
             ->middleware('signed')
-            ->name(MediaConfig::string('delivery.file_route.name', 'media-library.file'));
+            ->name(DeliveryRoutes::fileName());
     }
 
     /**
-     * The routes restricted files are served from (SPEC-0103 §5.4). They are
+     * The routes restricted files are served from. They are
      * `signed` like the public ones, but the addresses are temporary, and they
      * run inside the host's session middleware (`web` by default) because the
      * controllers ask who is signed in. They are separate routes so that the
@@ -187,13 +189,13 @@ final class MediaLibraryServiceProvider extends ServiceProvider
         $middleware = [...($configured === [] ? ['web'] : $configured), 'signed'];
 
         $router
-            ->get(MediaConfig::string('delivery.restricted_file_route.path', 'media/{uuid}/restricted-file'), RestrictedFileController::class)
+            ->get(DeliveryRoutes::restrictedFilePath(), RestrictedFileController::class)
             ->middleware($middleware)
-            ->name(MediaConfig::string('delivery.restricted_file_route.name', 'media-library.restricted-file'));
+            ->name(DeliveryRoutes::restrictedFileName());
 
         $router
-            ->get(MediaConfig::string('delivery.restricted_render_route.path', 'media/{uuid}/restricted-render'), RestrictedRenditionController::class)
+            ->get(DeliveryRoutes::restrictedRenderPath(), RestrictedRenditionController::class)
             ->middleware($middleware)
-            ->name(MediaConfig::string('delivery.restricted_render_route.name', 'media-library.restricted-render'));
+            ->name(DeliveryRoutes::restrictedRenderName());
     }
 }

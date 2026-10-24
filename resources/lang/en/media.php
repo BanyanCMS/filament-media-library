@@ -153,8 +153,6 @@ return [
         'audio_unsupported' => 'Your browser cannot play this audio.',
         'captions_label' => 'English',
         'transcript' => 'Transcript',
-        'none' => 'No preview is available for this kind of file.',
-        'pdf_thumbnail' => 'First page of :name',
     ],
     'file' => [
         'link' => ':title (:format, :size)',
@@ -246,9 +244,7 @@ return [
         'wrong_password' => 'That password is not right.',
         'throttled' => 'Too many wrong attempts. Try again in :minutes minutes.',
         'restricted_file' => 'Restricted file',
-        'restricted_label' => 'Restricted file',
         'restricted_marker' => 'restricted',
         'destination_refused' => 'You cannot put files in that folder.',
-        'skipped' => 'Some of the selected files were left where they are because you cannot change them.',
     ],
 ];

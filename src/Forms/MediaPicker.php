@@ -6,14 +6,15 @@ namespace Banyan\FilamentMediaLibrary\Forms;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
+use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
-use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
+use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Banyan\FilamentMediaLibrary\Uploads\FileTypes;
 use Closure;
@@ -21,7 +22,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Illuminate\Http\UploadedFile;
-use Throwable;
 
 /**
  * A form field that picks an asset from the library.
@@ -48,11 +48,11 @@ use Throwable;
  * The "Upload new" suffix action appears only to users who may manage the
  * folder the upload would go to ({@see FolderAccess}).
  *
- * Folder access (SPEC-0103 §5): the options, the search and the labels only ever
+ * Folder access: the options, the search and the labels only ever
  * contain assets the signed-in user may browse, so a file in a members-only folder
  * they are not in is not in the payload. Restricted folders (members-only or
  * password) are hidden *by default* even from users who can open them, because a
- * restricted file cannot be shown on a public page (§5.4, decision 5):
+ * restricted file cannot be shown on a public page:
  * {@see allowRestricted()} opts in, for intranets and back-office fields. The
  * saved value is checked against the same rule, so a hand-made request cannot
  * select a file the picker would not have offered.
@@ -60,8 +60,9 @@ use Throwable;
 final class MediaPicker extends Select
 {
     use MediaText;
+    use RunsMediaActions;
 
-    private const OPTION_LIMIT = 50;
+    private const int OPTION_LIMIT = 50;
 
     private bool $uploadable = true;
 
@@ -422,7 +423,7 @@ final class MediaPicker extends Select
     private function thumbnailMarkup(MediaAsset $asset): string
     {
         $src = $asset->isImage()
-            ? app(RenditionService::class)->url($asset, 48, 48, 'crop')
+            ? app(RenditionService::class)->url($asset, 48, 48, RenditionSpec::FIT_CROP)
             : app(PdfThumbnailService::class)->url($asset, 160);
 
         if ($src === null) {
@@ -479,23 +480,8 @@ final class MediaPicker extends Select
                     return;
                 }
 
-                try {
-                    $service = app(MediaGovernanceService::class);
-
-                    $asset = $service->upload(
-                        (string) file_get_contents($file->getRealPath()),
-                        $file->getClientOriginalName(),
-                        (string) ($file->getMimeType() ?? 'application/octet-stream'),
-                        (string) ($data['alt_text'] ?? ''),
-                        $actorId,
-                        MediaForms::expiry($data['license_expires_at'] ?? null),
-                        is_string($data['title'] ?? null) ? $data['title'] : null,
-                        $this->getFolder(),
-                    );
-
-                    if (filled($data['tags'] ?? null)) {
-                        $service->syncTags($asset, MediaForms::tags($data['tags']), $actorId);
-                    }
+                $this->attempt(self::text('media.uploaded'), self::text('media.upload_failed'), function () use ($file, $data, $actorId, $component): void {
+                    $asset = MediaForms::storeUpload($file, $data, $actorId, $this->getFolder());
 
                     // Select what was just uploaded; leaving the field alone
                     // would make the action look as though it had failed.
@@ -503,11 +489,7 @@ final class MediaPicker extends Select
                     $component->state($component->isMultiple()
                         ? [...(is_array($current) ? $current : []), $asset->id]
                         : $asset->id);
-
-                    Notification::make()->success()->title(self::text('media.uploaded'))->send();
-                } catch (Throwable $e) {
-                    Notification::make()->danger()->title(self::text('media.upload_failed'))->body($e->getMessage())->send();
-                }
+                });
             });
     }
 }

@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Model;
  * An `ImageColumn` that reads an asset id and serves the asset's thumbnail.
  *
  * A subclass rather than `->state(...)` on a plain `ImageColumn`, because a
- * resource that computes its own column state (Banyan's content lists do, as
- * field values are not model attributes) would overwrite a URL installed
+ * resource that computes its own column state (a content list that
+ * reads field values instead of model attributes does) would overwrite a URL installed
  * there. Translating id to URL at `getImageUrl()` puts the conversion after
  * whatever the resource decides the state is.
  *

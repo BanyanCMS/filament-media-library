@@ -20,6 +20,8 @@ final readonly class PdfThumbnailService
 {
     private const array WIDTHS = [160, 320, 640];
 
+    private const int DEFAULT_WIDTH = 320;
+
     public function __construct(
         private MediaRepository $media,
         private PdfThumbnailer $thumbnailer,
@@ -29,11 +31,11 @@ final readonly class PdfThumbnailService
     /** Whether a thumbnail could be offered for this asset on this host. */
     public function supports(MediaAsset $asset): bool
     {
-        return $asset->mime_type === 'application/pdf' && $this->thumbnailer->available();
+        return $asset->isPdf() && $this->thumbnailer->available();
     }
 
     /** A signed URL on the rendition route, or null when the asset has no thumbnail. */
-    public function url(MediaAsset $asset, int $width = 320): ?string
+    public function url(MediaAsset $asset, int $width = self::DEFAULT_WIDTH): ?string
     {
         return $this->supports($asset) ? $this->renditions->url($asset, $this->width($width)) : null;
     }
@@ -45,22 +47,19 @@ final readonly class PdfThumbnailService
             return null;
         }
 
-        $disk = $this->media->diskFor($asset);
-        $path = sprintf('%s/%s/v%d-pdf-%d.png', $this->media->renditionsPath(), $asset->uuid, $asset->current_version_id ?? 0, $this->width($width ?? 320));
+        $width = $this->width($width ?? self::DEFAULT_WIDTH);
+        $path = sprintf('%s/%s/v%d-pdf-%d.png', $this->media->renditionsPath(), $asset->uuid, $asset->current_version_id ?? 0, $width);
+        $cached = $this->renditions->cachedBytes($asset, $path);
 
-        if ($disk->exists($path)) {
-            $cached = $disk->get($path);
-
-            if (is_string($cached)) {
-                return $cached;
-            }
+        if ($cached !== null) {
+            return $cached;
         }
 
         $original = $this->media->contents($asset);
-        $png = $original === null ? null : $this->thumbnailer->thumbnail($original, $this->width($width ?? 320));
+        $png = $original === null ? null : $this->thumbnailer->thumbnail($original, $width);
 
         if ($png !== null) {
-            $disk->put($path, $png);
+            $this->media->diskFor($asset)->put($path, $png);
         }
 
         return $png;

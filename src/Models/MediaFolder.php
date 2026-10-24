@@ -7,6 +7,7 @@ namespace Banyan\FilamentMediaLibrary\Models;
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Enums\FolderAccessMode;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
+use Banyan\FilamentMediaLibrary\Support\LikeEscape;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A folder of assets (SPEC-0103 §5).
+ * A folder of assets.
  *
  * `path` lists the ids from the top-level folder down to this one, own id
  * included ("/12/45/"), so ancestors and the whole subtree are answered
@@ -190,9 +191,7 @@ final class MediaFolder extends Model
      */
     public function subtreeQuery(): Builder
     {
-        // `!` as the escape character, as in MediaAsset::scopeSearch(): one
-        // ESCAPE clause that MySQL, PostgreSQL and SQLite read alike.
-        $like = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $this->path).'%';
+        $like = LikeEscape::escape($this->path).'%';
 
         return self::query()->whereRaw("path like ? escape '!'", [$like]);
     }

@@ -11,6 +11,7 @@ use Banyan\FilamentMediaLibrary\Admin\Concerns\BrowsesFolders;
 use Banyan\FilamentMediaLibrary\Admin\Concerns\GuardsRestrictedMoves;
 use Banyan\FilamentMediaLibrary\Admin\Concerns\ManagesFolderAccess;
 use Banyan\FilamentMediaLibrary\Admin\Concerns\ManagesFolders;
+use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
@@ -26,19 +27,17 @@ use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
-use Throwable;
 use UnitEnum;
 
 /**
  * The library grid.
  *
  * A grid, not a table, because the identifying property of an image is what it
- * looks like. The metadata that a table would lead with — filename, dimensions,
- * size — is what you check *after* you have found the picture, so it sits under
+ * looks like. The metadata that a table would lead with, filename, dimensions,
+ * size, is what you check *after* you have found the picture, so it sits under
  * the thumbnail rather than instead of it.
  *
  * Two states are surfaced on the card itself rather than behind a filter,
@@ -52,6 +51,7 @@ class MediaLibraryPage extends Page
     use ManagesFolderAccess;
     use ManagesFolders;
     use MediaText;
+    use RunsMediaActions;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
@@ -295,26 +295,9 @@ class MediaLibraryPage extends Page
                     return;
                 }
 
-                try {
-                    $asset = app(MediaGovernanceService::class)->upload(
-                        (string) file_get_contents($file->getRealPath()),
-                        $file->getClientOriginalName(),
-                        (string) ($file->getMimeType() ?? 'application/octet-stream'),
-                        (string) ($data['alt_text'] ?? ''),
-                        $actorId,
-                        MediaForms::expiry($data['license_expires_at'] ?? null),
-                        is_string($data['title'] ?? null) ? $data['title'] : null,
-                        $this->currentFolder(),
-                    );
-
-                    if (filled($data['tags'] ?? null)) {
-                        app(MediaGovernanceService::class)->syncTags($asset, MediaForms::tags($data['tags']), $actorId);
-                    }
-
-                    Notification::make()->success()->title(self::text('media.uploaded'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.upload_failed'), $e);
-                }
+                $this->attempt(self::text('media.uploaded'), self::text('media.upload_failed'), function () use ($file, $data, $actorId): void {
+                    MediaForms::storeUpload($file, $data, $actorId, $this->currentFolder());
+                });
             });
     }
 
@@ -336,15 +319,7 @@ class MediaLibraryPage extends Page
             ->modalDescription(function (array $arguments): string {
                 $asset = $this->assetFrom($arguments);
 
-                if (! $asset instanceof MediaAsset || ! $this->canManageAsset($asset)) {
-                    return self::text('media.not_found');
-                }
-
-                $count = app(UsageResolver::class)->count($asset->id);
-
-                return $count > 0
-                    ? self::text('media.delete_confirm_used', ['name' => $asset->filename, 'count' => $count])
-                    : self::text('media.delete_confirm', ['name' => $asset->filename]);
+                return $this->deleteConfirmation($asset instanceof MediaAsset && $this->canManageAsset($asset) ? $asset : null);
             })
             ->action(function (array $arguments): void {
                 $actorId = MediaLibraryGate::actorId();
@@ -354,13 +329,9 @@ class MediaLibraryPage extends Page
                     return;
                 }
 
-                try {
+                $this->attempt(self::text('media.deleted'), self::text('media.delete_failed'), function () use ($asset, $actorId): void {
                     app(MediaGovernanceService::class)->delete($asset, $actorId);
-
-                    Notification::make()->success()->title(self::text('media.deleted'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.delete_failed'), $e);
-                }
+                });
             });
     }
 
@@ -371,10 +342,5 @@ class MediaLibraryPage extends Page
 
         // visibleTo(): an id for an asset this user may not see finds nothing, exactly like one that does not exist.
         return is_numeric($id) ? MediaAsset::query()->visibleTo()->find((int) $id) : null;
-    }
-
-    private function reportFailure(string $title, Throwable $e): void
-    {
-        Notification::make()->danger()->title($title)->body($e->getMessage())->send();
     }
 }

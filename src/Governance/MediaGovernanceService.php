@@ -15,6 +15,7 @@ use Banyan\FilamentMediaLibrary\Events\FocalPointChanged;
 use Banyan\FilamentMediaLibrary\Events\MediaEvent;
 use Banyan\FilamentMediaLibrary\Events\TranscriptChanged;
 use Banyan\FilamentMediaLibrary\Exceptions\AltTextRequired;
+use Banyan\FilamentMediaLibrary\Exceptions\AssetReferenced;
 use Banyan\FilamentMediaLibrary\Exceptions\CompanionNotAllowed;
 use Banyan\FilamentMediaLibrary\Exceptions\MediaException;
 use Banyan\FilamentMediaLibrary\Exceptions\TitleRequired;
@@ -31,14 +32,14 @@ use Illuminate\Database\ConnectionInterface;
  * The single entry point every media-administration surface writes through.
  *
  * {@see MediaRepository} owns the tables and the disk; this class is the
- * composition — write, then dispatch a {@see MediaEvent},
+ * composition, write, then dispatch a {@see MediaEvent},
  * in the *same* transaction, so an audit listener never records a write that
  * was rolled back and a listener that throws undoes the write. An asset
  * replaced or deleted without a trail is exactly the change nobody can
  * reconstruct afterwards.
  *
- * Event payloads carry references — asset id, uuid, kind, version id, byte
- * count — and never the alt text, title or filename: a filename is frequently personal data
+ * Event payloads carry references, asset id, uuid, kind, version id, byte
+ * count, and never the alt text, title or filename: a filename is frequently personal data
  * ("cv-jane-doe.png").
  *
  * **Not gated by folder access.** Like {@see MediaFolderService}
@@ -178,9 +179,13 @@ final readonly class MediaGovernanceService
     }
 
     /**
-     * Delete an asset. The usage count at the moment of deletion is recorded,
-     * because "deleted while 4 pages still used it" is the fact an incident
-     * review needs and the fact no later query can reconstruct.
+     * Delete an asset that nothing uses.
+     *
+     * A used asset is refused with {@see AssetReferenced}, so a delete that
+     * succeeds always records a usage count of 0. The `usage_count` key stays in
+     * the event payload so existing listeners keep working.
+     *
+     * @throws AssetReferenced
      */
     public function delete(MediaAsset $asset, string $actorId): void
     {

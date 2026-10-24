@@ -584,7 +584,7 @@
     background: var(--gray-800, #1f2937);
 }
 
-/* ── File previews (SPEC-0103 F2) ─────────────────────────────────────────── */
+/* ── File previews ─────────────────────────────────────────── */
 
 /* Sized here, not with a style attribute: a strict style-src CSP blocks those. */
 .bn-media__pdf {
@@ -652,7 +652,7 @@ audio.bn-media__player {
     color: var(--gray-500, #6b7280);
 }
 
-/* ── Folders (SPEC-0103 F3) ────────────────────────────────────────────────── */
+/* ── Folders ────────────────────────────────────────────────── */
 
 .bn-media__layout {
     display: grid;
@@ -844,7 +844,7 @@ audio.bn-media__player {
     border-radius: var(--ml-radius-card);
 }
 
-/* Folder access (SPEC-0103 F4) */
+/* Folder access */
 .bn-media__sr {
     position: absolute;
     width: 1px;

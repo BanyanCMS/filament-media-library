@@ -10,6 +10,7 @@ use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Models\MediaFolderMember;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Session\Session;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * The one place a folder decision is made (SPEC-0103 §5.2, §5.3).
+ * The one place a folder decision is made.
  *
  * Every surface (grid, tree, picker, asset page, file routes, URL helpers)
  * asks here. Nothing else may reimplement "can this user see that folder".
@@ -59,11 +60,18 @@ use Illuminate\Support\Facades\RateLimiter;
  * never *deny*: a folder created after the list was made is invisible, not exposed.
  *
  * Registered as a scoped binding, so the folder cache lives for one request;
- * the folder and member models flush it on every write.
+ * the folder model flushes it on every save and delete, and
+ * `MediaFolderService` flushes it after a member change.
+ *
+ * @phpstan-type FolderRow array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}
  */
 final class FolderAccess
 {
-    /** @var array<int, array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}>|null */
+    private const int MAX_ATTEMPTS = 5;
+
+    private const int WINDOW_SECONDS = 900;
+
+    /** @var array<int, FolderRow>|null */
     private ?array $rows = null;
 
     /** @var array<int, array<int, string>> */
@@ -71,7 +79,7 @@ final class FolderAccess
 
     public function __construct(private readonly Dispatcher $events) {}
 
-    /** Drop the cached folder table; called by the models whenever a folder or member changes. */
+    /** Drop the cached folder table; called when a folder is saved or deleted, and after a member change. */
     public function forget(): void
     {
         $this->rows = null;
@@ -175,7 +183,7 @@ final class FolderAccess
 
     /**
      * Whether any folder on the path is members-only or password-protected, so
-     * that the files in it are not for the public (§5.4). Unlike browsing this
+     * that the files in it are not for the public. Unlike browsing this
      * does not depend on who asks. An unknown folder counts as restricted.
      */
     public function isRestricted(MediaFolder|MediaAsset|null $target): bool
@@ -195,16 +203,7 @@ final class FolderAccess
      */
     public function browsableFolderIds(?Authenticatable $user = null): array
     {
-        $ctx = $this->context($user);
-        $ids = [];
-
-        foreach ($ctx instanceof AccessContext ? array_keys($this->rows()) : [] as $id) {
-            if ($ctx instanceof AccessContext && $this->browseAllowed($id, $ctx)) {
-                $ids[] = $id;
-            }
-        }
-
-        return $ids;
+        return $this->idsWhere($user, fn (int $id, AccessContext $ctx): bool => $this->browseAllowed($id, $ctx));
     }
 
     /**
@@ -215,16 +214,7 @@ final class FolderAccess
      */
     public function listedFolderIds(?Authenticatable $user = null): array
     {
-        $ctx = $this->context($user);
-        $ids = [];
-
-        foreach ($ctx instanceof AccessContext ? array_keys($this->rows()) : [] as $id) {
-            if ($ctx instanceof AccessContext && $this->listedAllowed($id, $ctx)) {
-                $ids[] = $id;
-            }
-        }
-
-        return $ids;
+        return $this->idsWhere($user, fn (int $id, AccessContext $ctx): bool => $this->listedAllowed($id, $ctx));
     }
 
     /**
@@ -234,16 +224,7 @@ final class FolderAccess
      */
     public function lockedFolderIds(?Authenticatable $user = null): array
     {
-        $ctx = $this->context($user);
-        $ids = [];
-
-        foreach ($ctx instanceof AccessContext ? array_keys($this->rows()) : [] as $id) {
-            if ($ctx instanceof AccessContext && $this->listedAllowed($id, $ctx) && ! $this->browseAllowed($id, $ctx)) {
-                $ids[] = $id;
-            }
-        }
-
-        return $ids;
+        return $this->idsWhere($user, fn (int $id, AccessContext $ctx): bool => $this->listedAllowed($id, $ctx) && ! $this->browseAllowed($id, $ctx));
     }
 
     /**
@@ -253,16 +234,7 @@ final class FolderAccess
      */
     public function manageableFolderIds(?Authenticatable $user = null): array
     {
-        $ctx = $this->context($user);
-        $ids = [];
-
-        foreach ($ctx instanceof AccessContext ? array_keys($this->rows()) : [] as $id) {
-            if ($ctx instanceof AccessContext && $this->manageAllowed($id, $ctx)) {
-                $ids[] = $id;
-            }
-        }
-
-        return $ids;
+        return $this->idsWhere($user, fn (int $id, AccessContext $ctx): bool => $this->manageAllowed($id, $ctx));
     }
 
     /**
@@ -274,6 +246,23 @@ final class FolderAccess
     public function unrestrictedFolderIds(): array
     {
         return array_values(array_filter(array_keys($this->rows()), fn (int $id): bool => ! $this->restrictedId($id)));
+    }
+
+    /**
+     * The folder ids the user passes `$test` for; none when nobody is signed in.
+     *
+     * @param  Closure(int, AccessContext): bool  $test
+     * @return list<int>
+     */
+    private function idsWhere(?Authenticatable $user, Closure $test): array
+    {
+        $ctx = $this->context($user);
+
+        if (! $ctx instanceof AccessContext) {
+            return [];
+        }
+
+        return array_values(array_filter(array_keys($this->rows()), static fn (int $id): bool => $test($id, $ctx)));
     }
 
     // ------------------------------------------------------------------ passwords
@@ -378,10 +367,6 @@ final class FolderAccess
     {
         return 'media-library.unlocked.'.$folderUuid;
     }
-
-    private const int MAX_ATTEMPTS = 5;
-
-    private const int WINDOW_SECONDS = 900;
 
     // ------------------------------------------------------------------ internals
 
@@ -513,7 +498,7 @@ final class FolderAccess
     }
 
     /**
-     * @param  array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}  $row
+     * @param  FolderRow  $row
      */
     private function ownBrowse(array $row, Authenticatable $user): FolderState
     {
@@ -525,7 +510,7 @@ final class FolderAccess
     }
 
     /**
-     * @param  array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}  $row
+     * @param  FolderRow  $row
      */
     private function ownManage(array $row, AccessContext $ctx): bool
     {
@@ -537,7 +522,7 @@ final class FolderAccess
     }
 
     /**
-     * @param  array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}  $row
+     * @param  FolderRow  $row
      */
     private function isOwner(array $row, Authenticatable $user): bool
     {
@@ -563,7 +548,7 @@ final class FolderAccess
     }
 
     /**
-     * @param  array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}  $row
+     * @param  FolderRow  $row
      */
     private function unlockedRow(array $row): bool
     {
@@ -606,14 +591,14 @@ final class FolderAccess
     }
 
     /**
-     * @param  array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}  $row
+     * @param  FolderRow  $row
      */
     private function parentsPass(array $row, AccessContext $ctx): bool
     {
         return $ctx->manageAll || $row['parent'] === null || $this->stateOf($row['parent'], $ctx) === FolderState::Pass;
     }
 
-    /** @return array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}|null */
+    /** @return FolderRow|null */
     private function nearestPasswordRow(int $id): ?array
     {
         foreach ($this->chain($id) ?? [] as $row) {
@@ -628,7 +613,7 @@ final class FolderAccess
     /**
      * The folder and its ancestors, nearest first; null when the folder is unknown or the tree is corrupt (a cycle).
      *
-     * @return list<array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}>|null
+     * @return list<FolderRow>|null
      */
     private function chain(?int $id): ?array
     {
@@ -659,7 +644,7 @@ final class FolderAccess
         return $chain;
     }
 
-    /** @return array<int, array{id: int, uuid: string, parent: int|null, mode: FolderAccessMode, owner: string|null, hash: string|null}> */
+    /** @return array<int, FolderRow> */
     private function rows(): array
     {
         if ($this->rows !== null) {

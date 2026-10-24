@@ -8,7 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * SPEC-0103 §8: a video's captions file and a video's or audio file's transcript.
+ * A video's captions file and a video's or audio file's transcript.
  *
  * `captions_asset_id` points at another asset (a WebVTT document) and is set to
  * null when that asset is deleted: a video must not be left pointing at a

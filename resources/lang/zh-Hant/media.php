@@ -153,8 +153,6 @@ return [
         'audio_unsupported' => '你的瀏覽器無法播放此音訊。',
         'captions_label' => '字幕',
         'transcript' => '逐字稿',
-        'none' => '此類檔案沒有預覽。',
-        'pdf_thumbnail' => ':name 的第一頁',
     ],
     'file' => [
         'link' => ':title（:format，:size）',
@@ -246,9 +244,7 @@ return [
         'wrong_password' => '密碼不正確。',
         'throttled' => '錯誤次數過多，請在 :minutes 分鐘後再試。',
         'restricted_file' => '受限制檔案',
-        'restricted_label' => '受限制檔案',
         'restricted_marker' => '受限制',
         'destination_refused' => '你無法將檔案放入該資料夾。',
-        'skipped' => '部分所選檔案因你無權更改而保持原位。',
     ],
 ];

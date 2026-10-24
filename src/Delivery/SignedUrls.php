@@ -11,7 +11,7 @@ use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Illuminate\Support\Facades\URL;
 
 /**
- * Chooses between the two ways a file address can be signed (SPEC-0103 §5.4).
+ * Chooses between the two ways a file address can be signed.
  *
  *  - An ordinary asset gets a permanent signed address on a route with no
  *    session, so public pages and CDNs keep working.

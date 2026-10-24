@@ -21,7 +21,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
-use Throwable;
 
 /**
  * The "Access…" action: mode, password and members of the open folder.
@@ -70,18 +69,14 @@ trait ManagesFolderAccess
                     return;
                 }
 
-                try {
+                $this->attempt(self::text('media.access.saved'), self::text('media.access.save_failed'), function () use ($folder, $mode, $data, $actorId): void {
                     $service = app(MediaFolderService::class);
                     $service->setAccess($folder, $mode, is_string($data['password'] ?? null) ? $data['password'] : null, $actorId);
 
                     if ($mode === FolderAccessMode::Members) {
                         $this->syncMembers($folder, is_array($data['members'] ?? null) ? $data['members'] : [], $actorId);
                     }
-
-                    Notification::make()->success()->title(self::text('media.access.saved'))->send();
-                } catch (Throwable $e) {
-                    Notification::make()->danger()->title(self::text('media.access.save_failed'))->body($e->getMessage())->send();
-                }
+                });
             });
     }
 

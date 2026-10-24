@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Http;
 
+use Banyan\FilamentMediaLibrary\Delivery\DeliveryRoutes;
 use Banyan\FilamentMediaLibrary\Delivery\FileDelivery;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
@@ -34,7 +35,7 @@ use Throwable;
  *  - a local disk: {@see BinaryFileResponse}, which implements `Range`, so video and audio seek;
  *  - a disk with temporary URLs (S3, R2): a 302 to one, valid for
  *    `delivery.temporary_url_minutes`, with the type and disposition passed as
- *    response overrides, so the provider does the ranging — but only for a
+ *    response overrides, so the provider does the ranging, but only for a
  *    download or a top-level visit. An embed (the PDF iframe, a <video> or
  *    <audio>, which the browser marks with `Sec-Fetch-Dest`) is streamed from
  *    this origin instead: a strict Content Security Policy (`frame-src 'self'`,
@@ -75,7 +76,7 @@ final class FileController
             'Content-Disposition' => $disposition,
             'X-Content-Type-Options' => 'nosniff',
             // Immutable is honest: the URL carries the version, signed with the rest.
-            'Cache-Control' => $private ? 'private, no-store' : 'public, max-age=31536000, immutable',
+            'Cache-Control' => DeliveryRoutes::cacheControl($private),
         ];
 
         if (! $disk instanceof FilesystemAdapter) {
@@ -126,7 +127,7 @@ final class FileController
 
         // Not cached: the target expires in minutes, the address that issued it does not.
         return new RedirectResponse($url, SymfonyResponse::HTTP_FOUND, [
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => DeliveryRoutes::PRIVATE_CACHE,
             'X-Content-Type-Options' => 'nosniff',
             'Vary' => 'Sec-Fetch-Dest',
         ]);

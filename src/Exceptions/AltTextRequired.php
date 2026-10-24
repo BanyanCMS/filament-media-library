@@ -9,7 +9,7 @@ namespace Banyan\FilamentMediaLibrary\Exceptions;
  *
  * Thrown by the repository, not only rejected by the form. The form is one
  * caller; a seeder, an import and a future API are three more, and each would
- * otherwise have to remember the rule independently (docs/ux/0004).
+ * otherwise have to remember the rule independently.
  */
 final class AltTextRequired extends MediaException
 {

@@ -8,6 +8,7 @@ use BackedEnum;
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
 use Banyan\FilamentMediaLibrary\Admin\Concerns\GuardsRestrictedMoves;
+use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
 use Banyan\FilamentMediaLibrary\Admin\Support\FolderChoices;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
@@ -28,17 +29,15 @@ use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Http\UploadedFile;
 use Livewire\Attributes\Locked;
-use Throwable;
 
 /**
  * One asset: preview, focal point, alt text, licence, usage and versions.
  *
- * Not registered in the navigation — it is reached from a library card — but it
+ * Not registered in the navigation, it is reached from a library card, but it
  * *is* a route, so an asset is linkable. "The image on the careers page is the
  * wrong crop" is a sentence somebody has to be able to paste a URL into.
  */
@@ -46,6 +45,7 @@ class MediaAssetPage extends Page
 {
     use GuardsRestrictedMoves;
     use MediaText;
+    use RunsMediaActions;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
@@ -68,6 +68,13 @@ class MediaAssetPage extends Page
     #[Locked]
     public ?int $assetId = null;
 
+    /** Read once per request; dropped after a write. Not public, so Livewire never sends it to the browser. */
+    private ?MediaAsset $loadedRecord = null;
+
+    private bool $recordLoaded = false;
+
+    private ?int $loadedUsageCount = null;
+
     public static function canAccess(): bool
     {
         return MediaLibraryGate::allowsBrowse();
@@ -83,7 +90,7 @@ class MediaAssetPage extends Page
     {
         $this->asset = $asset;
 
-        $found = MediaAsset::query()->where('uuid', $asset)->first();
+        $found = MediaAsset::findByUuid($asset);
         $access = app(FolderAccess::class);
 
         abort_if(! $found instanceof MediaAsset, 404);
@@ -122,9 +129,21 @@ class MediaAssetPage extends Page
      */
     public function record(): ?MediaAsset
     {
-        $asset = $this->assetId === null ? null : MediaAsset::query()->with('tags')->find($this->assetId);
+        if (! $this->recordLoaded) {
+            $asset = $this->assetId === null ? null : MediaAsset::query()->with('tags')->find($this->assetId);
 
-        return $asset instanceof MediaAsset && app(FolderAccess::class)->canBrowse($asset) ? $asset : null;
+            $this->loadedRecord = $asset instanceof MediaAsset && app(FolderAccess::class)->canBrowse($asset) ? $asset : null;
+            $this->recordLoaded = true;
+        }
+
+        return $this->loadedRecord;
+    }
+
+    protected function mediaActionFinished(): void
+    {
+        $this->loadedRecord = null;
+        $this->recordLoaded = false;
+        $this->loadedUsageCount = null;
     }
 
     public function previewUrl(MediaAsset $asset): string
@@ -160,25 +179,22 @@ class MediaAssetPage extends Page
      * Persist the crosshair.
      *
      * Called from Alpine rather than through an Action because the interaction
-     * is a drag on an image, not a form — but it re-checks the gate here, since
+     * is a drag on an image, not a form, but it re-checks the gate here, since
      * a Livewire method is reachable by anyone who can reach the component.
      */
     public function storeFocalPoint(float $x, float $y): void
     {
-        $actorId = MediaLibraryGate::actorId();
-        $asset = $this->record();
+        $managed = $this->managed();
 
-        if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+        if ($managed === null) {
             return;
         }
 
-        try {
-            app(MediaGovernanceService::class)->setFocalPoint($asset, $x, $y, $actorId);
+        [$actorId, $asset] = $managed;
 
-            Notification::make()->success()->title(self::text('media.focal_saved'))->send();
-        } catch (Throwable $e) {
-            $this->reportFailure(self::text('media.update_failed'), $e);
-        }
+        $this->attempt(self::text('media.focal_saved'), self::text('media.update_failed'), function () use ($asset, $x, $y, $actorId): void {
+            app(MediaGovernanceService::class)->setFocalPoint($asset, $x, $y, $actorId);
+        });
     }
 
     /** @return list<Action|ActionGroup> */
@@ -213,14 +229,15 @@ class MediaAssetPage extends Page
             ])
             ->schema(fn (): array => MediaForms::details($this->record()?->isImage() ?? true))
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return;
                 }
 
-                try {
+                [$actorId, $asset] = $managed;
+
+                $this->attempt(self::text('media.updated'), self::text('media.update_failed'), function () use ($asset, $data, $actorId): void {
                     app(MediaGovernanceService::class)->updateDetails(
                         $asset,
                         (string) ($data['alt_text'] ?? ''),
@@ -228,11 +245,7 @@ class MediaAssetPage extends Page
                         $actorId,
                         is_string($data['title'] ?? null) ? $data['title'] : null,
                     );
-
-                    Notification::make()->success()->title(self::text('media.updated'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.update_failed'), $e);
-                }
+                });
             });
     }
 
@@ -268,27 +281,26 @@ class MediaAssetPage extends Page
                 $this->confirmUsageField(fn (Get $get): int => $this->usedFileCount($this->safeFolder($get('destination')), array_filter([$this->record()]))),
             ])
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = MediaConfig::foldersEnabled() ? $this->managed() : null;
 
-                if ($actorId === null || ! MediaConfig::foldersEnabled() || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return;
                 }
 
-                try {
+                [$actorId, $asset] = $managed;
+
+                $this->attempt(self::text('media.folders.asset_moved'), self::text('media.update_failed'), function () use ($asset, $data, $actorId): bool {
                     // An unknown or unusable destination fails rather than filing the asset at the root.
                     $folder = $this->folderFrom($data['destination'] ?? null);
 
                     if (! $this->usageConfirmed($folder, [$asset], $data)) {
-                        return;
+                        return false;
                     }
 
                     app(MediaFolderService::class)->moveAssets([$asset], $folder, $actorId);
 
-                    Notification::make()->success()->title(self::text('media.folders.asset_moved'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.update_failed'), $e);
-                }
+                    return true;
+                });
             });
     }
 
@@ -309,20 +321,17 @@ class MediaAssetPage extends Page
                     ->maxLength(512),
             ])
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return;
                 }
 
-                try {
-                    app(MediaGovernanceService::class)->syncTags($asset, MediaForms::tags($data['tags'] ?? ''), $actorId);
+                [$actorId, $asset] = $managed;
 
-                    Notification::make()->success()->title(self::text('media.tags_saved'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.update_failed'), $e);
-                }
+                $this->attempt(self::text('media.tags_saved'), self::text('media.update_failed'), function () use ($asset, $data, $actorId): void {
+                    app(MediaGovernanceService::class)->syncTags($asset, MediaForms::tags($data['tags'] ?? ''), $actorId);
+                });
             });
     }
 
@@ -346,23 +355,20 @@ class MediaAssetPage extends Page
                     ->getOptionLabelUsing(fn (mixed $value): ?string => is_numeric($value) ? MediaAsset::query()->visibleTo()->find((int) $value)?->displayName() : null),
             ])
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return;
                 }
 
-                try {
+                [$actorId, $asset] = $managed;
+
+                $this->attempt(self::text('media.captions_saved'), self::text('media.update_failed'), function () use ($asset, $data, $actorId): void {
                     $id = $data['captions_asset_id'] ?? null;
                     $captions = is_numeric($id) ? MediaAsset::query()->visibleTo()->find((int) $id) : null;
 
                     app(MediaGovernanceService::class)->setCaptions($asset, $captions, $actorId);
-
-                    Notification::make()->success()->title(self::text('media.captions_saved'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.update_failed'), $e);
-                }
+                });
             });
     }
 
@@ -384,20 +390,17 @@ class MediaAssetPage extends Page
                     ->maxLength(65000),
             ])
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return;
                 }
 
-                try {
-                    app(MediaGovernanceService::class)->setTranscript($asset, is_string($data['transcript'] ?? null) ? $data['transcript'] : null, $actorId);
+                [$actorId, $asset] = $managed;
 
-                    Notification::make()->success()->title(self::text('media.transcript_saved'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.update_failed'), $e);
-                }
+                $this->attempt(self::text('media.transcript_saved'), self::text('media.update_failed'), function () use ($asset, $data, $actorId): void {
+                    app(MediaGovernanceService::class)->setTranscript($asset, is_string($data['transcript'] ?? null) ? $data['transcript'] : null, $actorId);
+                });
             });
     }
 
@@ -408,7 +411,7 @@ class MediaAssetPage extends Page
      */
     private function captionOptions(?string $search = null): array
     {
-        $query = MediaAsset::query()->visibleTo()->ofKind(MediaKind::Document)->where('mime_type', 'text/vtt')->orderByDesc('id')->limit(50);
+        $query = MediaAsset::query()->visibleTo()->ofKind(MediaKind::Document)->where('mime_type', MediaAsset::WEBVTT_MIME_TYPE)->orderByDesc('id')->limit(50);
 
         $query->search((string) $search);
 
@@ -431,27 +434,18 @@ class MediaAssetPage extends Page
             ->visible(fn (): bool => $this->canManage())
             ->schema(fn (): array => MediaForms::replace($this->record()->kind ?? MediaKind::Image))
             ->action(function (array $data): void {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
                 $file = $data['file'] ?? null;
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset || ! $file instanceof UploadedFile) {
+                if ($managed === null || ! $file instanceof UploadedFile) {
                     return;
                 }
 
-                try {
-                    app(MediaGovernanceService::class)->replace(
-                        $asset,
-                        (string) file_get_contents($file->getRealPath()),
-                        $file->getClientOriginalName(),
-                        (string) ($file->getMimeType() ?? 'application/octet-stream'),
-                        $actorId,
-                    );
+                [$actorId, $asset] = $managed;
 
-                    Notification::make()->success()->title(self::text('media.replaced'))->send();
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.replace_failed'), $e);
-                }
+                $this->attempt(self::text('media.replaced'), self::text('media.replace_failed'), function () use ($asset, $file, $actorId): void {
+                    MediaForms::storeReplacement($asset, $file, $actorId);
+                });
             });
     }
 
@@ -466,44 +460,31 @@ class MediaAssetPage extends Page
             // refuses it), so the button is not offered; the usage table above
             // says where it is used instead.
             ->visible(fn (): bool => $this->canManage() && $this->usageCount() === 0)
-            ->modalDescription(function (): string {
-                $asset = $this->record();
-
-                if (! $asset instanceof MediaAsset) {
-                    return self::text('media.not_found');
-                }
-
-                $count = app(UsageResolver::class)->count($asset->id);
-
-                return $count > 0
-                    ? self::text('media.delete_confirm_used', ['name' => $asset->filename, 'count' => $count])
-                    : self::text('media.delete_confirm', ['name' => $asset->filename]);
-            })
+            ->modalDescription(fn (): string => $this->deleteConfirmation($this->record()))
             ->action(function (): mixed {
-                $actorId = MediaLibraryGate::actorId();
-                $asset = $this->record();
+                $managed = $this->managed();
 
-                if ($actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset) {
+                if ($managed === null) {
                     return null;
                 }
 
-                try {
+                [$actorId, $asset] = $managed;
+
+                return $this->attempt(self::text('media.deleted'), self::text('media.delete_failed'), function () use ($asset, $actorId): mixed {
                     app(MediaGovernanceService::class)->delete($asset, $actorId);
 
-                    Notification::make()->success()->title(self::text('media.deleted'))->send();
-
                     return redirect($this->libraryUrl());
-                } catch (Throwable $e) {
-                    $this->reportFailure(self::text('media.delete_failed'), $e);
-
-                    return null;
-                }
+                });
             });
     }
 
     public function usageCount(): int
     {
-        return $this->assetId === null ? 0 : app(UsageResolver::class)->count($this->assetId);
+        if ($this->assetId === null) {
+            return 0;
+        }
+
+        return $this->loadedUsageCount ??= app(UsageResolver::class)->count($this->assetId);
     }
 
     public function usageSummary(): string
@@ -511,8 +492,17 @@ class MediaAssetPage extends Page
         return self::choice('media.usage_count', $this->usageCount());
     }
 
-    private function reportFailure(string $title, Throwable $e): void
+    /**
+     * The signed-in user's id and the asset, when this user may change it.
+     * Every write action asks again here, since `visible()` only hides a button.
+     *
+     * @return array{0: string, 1: MediaAsset}|null
+     */
+    private function managed(): ?array
     {
-        Notification::make()->danger()->title($title)->body($e->getMessage())->send();
+        $actorId = MediaLibraryGate::actorId();
+        $asset = $this->record();
+
+        return $actorId === null || ! $this->canManage() || ! $asset instanceof MediaAsset ? null : [$actorId, $asset];
     }
 }

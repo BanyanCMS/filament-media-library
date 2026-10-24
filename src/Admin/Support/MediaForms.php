@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Admin\Support;
 
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
+use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
+use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Support\MediaKinds;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -13,6 +16,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\File\File;
 use Throwable;
 
@@ -20,8 +24,8 @@ use Throwable;
  * The form schemas the library and the asset page share.
  *
  * Alt text carries `->required()` wherever the asset is, or can only be, an
- * image, and the repository throws without it (docs/ux/0004). A title is the
- * same rule for every other kind (SPEC-0103). The form stops the mistake; the
+ * image, and the repository throws without it. A title is the
+ * same rule for every other kind. The form stops the mistake; the
  * repository stops the non-form caller. Where the kind is not known until a
  * file is chosen, the form states the rule in its help text and relies on the
  * repository's message.
@@ -119,6 +123,54 @@ final class MediaForms
         }
 
         return [$file->acceptedFileTypes(MediaKinds::acceptedMimeTypes([$kind]))];
+    }
+
+    /**
+     * Store the file from an upload form, with its alt text, title, licence date and tags.
+     *
+     * The caller has already checked who may upload. The service still checks
+     * the file itself.
+     *
+     * @param  array<string, mixed>  $data  the submitted upload form
+     */
+    public static function storeUpload(UploadedFile $file, array $data, string $actorId, ?MediaFolder $folder = null): MediaAsset
+    {
+        $service = app(MediaGovernanceService::class);
+        $altText = $data['alt_text'] ?? '';
+
+        $asset = $service->upload(
+            self::contents($file),
+            $file->getClientOriginalName(),
+            self::mimeType($file),
+            is_scalar($altText) ? (string) $altText : '',
+            $actorId,
+            self::expiry($data['license_expires_at'] ?? null),
+            is_string($data['title'] ?? null) ? $data['title'] : null,
+            $folder,
+        );
+
+        if (filled($data['tags'] ?? null)) {
+            $service->syncTags($asset, self::tags($data['tags']), $actorId);
+        }
+
+        return $asset;
+    }
+
+    /** Put the file from a replace form on the asset as a new version. */
+    public static function storeReplacement(MediaAsset $asset, UploadedFile $file, string $actorId): void
+    {
+        app(MediaGovernanceService::class)->replace($asset, self::contents($file), $file->getClientOriginalName(), self::mimeType($file), $actorId);
+    }
+
+    private static function contents(UploadedFile $file): string
+    {
+        return (string) file_get_contents($file->getRealPath());
+    }
+
+    /** The type the browser reported; the upload guard works out the real one from the bytes. */
+    private static function mimeType(UploadedFile $file): string
+    {
+        return (string) ($file->getMimeType() ?? 'application/octet-stream');
     }
 
     /** @param  bool|\Closure(Get): bool  $required */

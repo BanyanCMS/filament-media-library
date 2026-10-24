@@ -9,6 +9,7 @@ use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
 use Banyan\FilamentMediaLibrary\Delivery\FileDelivery;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
+use Banyan\FilamentMediaLibrary\Support\LikeEscape;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -19,7 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A managed file: an image, or (SPEC-0103) a document, video, audio file or archive. Flat, not tree-scoped: an asset is reused across sites and
+ * A managed file: an image, document, video, audio file or archive.
+ *
+ * It is flat, not tree-scoped. An asset is reused across sites and
  * across every page that uses it, so it belongs to no one record.
  *
  * @property int $id
@@ -47,6 +50,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 final class MediaAsset extends Model
 {
+    public const string PDF_MIME_TYPE = 'application/pdf';
+
+    public const string WEBVTT_MIME_TYPE = 'text/vtt';
+
     public function getTable(): string
     {
         return MediaConfig::table('assets');
@@ -116,9 +123,9 @@ final class MediaAsset extends Model
     /**
      * Assets a content field may pick.
      *
-     * An expired asset stays fully visible and manageable in the library — an
+     * An expired asset stays fully visible and manageable in the library, an
      * operator has to be able to see the thing whose licence lapsed in order to
-     * renew or replace it — but it must not become a *new* usage. Exclusion at
+     * renew or replace it, but it must not become a *new* usage. Exclusion at
      * the picker query is where that distinction lives.
      *
      * @param  Builder<MediaAsset>  $query
@@ -129,6 +136,18 @@ final class MediaAsset extends Model
         return $query->where(function (Builder $q): void {
             $q->whereNull('license_expires_at')->orWhere('license_expires_at', '>', now());
         });
+    }
+
+    /** A PDF: the only document with page thumbnails. */
+    public function isPdf(): bool
+    {
+        return $this->mime_type === self::PDF_MIME_TYPE;
+    }
+
+    /** A WebVTT file: what a video's captions must be. */
+    public function isWebVtt(): bool
+    {
+        return $this->mime_type === self::WEBVTT_MIME_TYPE;
     }
 
     /** An image can be cropped, focused and rendered; every other kind is delivered as-is. */
@@ -212,7 +231,7 @@ final class MediaAsset extends Model
 
     /**
      * Only assets with no members-only or password folder on their path: what a
-     * page open to the public may use (SPEC-0103 §5.4).
+     * page open to the public may use.
      *
      * @param  Builder<MediaAsset>  $query
      * @return Builder<MediaAsset>
@@ -254,9 +273,7 @@ final class MediaAsset extends Model
             return $query;
         }
 
-        // `!` as the escape character: one ESCAPE clause that MySQL, PostgreSQL
-        // and SQLite all read the same way, unlike a backslash.
-        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+        $like = '%'.LikeEscape::escape($term).'%';
 
         return $query->where(fn (Builder $q) => $q
             ->whereRaw("filename like ? escape '!'", [$like])
@@ -303,7 +320,7 @@ final class MediaAsset extends Model
     }
 
     /**
-     * Used somewhere, as the bound {@see UsageResolver} counts usage — the same
+     * Used somewhere, as the bound {@see UsageResolver} counts usage, the same
      * answer delete protection and the licence report give.
      *
      * @param  Builder<MediaAsset>  $query

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Rendering;
 
+use Banyan\FilamentMediaLibrary\Delivery\DeliveryRoutes;
 use Banyan\FilamentMediaLibrary\Delivery\SignedUrls;
 use Banyan\FilamentMediaLibrary\Exceptions\AccessDenied;
 use Banyan\FilamentMediaLibrary\Exceptions\UnreadableImage;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
-use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 
 /**
  * Derivatives, on demand and cached.
@@ -44,30 +44,29 @@ final readonly class RenditionService
      */
     public function render(MediaAsset $asset, RenditionSpec $spec): ?array
     {
-        // A PDF has no pixels to crop. The file route (SPEC-0103 F2) delivers non-images.
+        // A PDF has no pixels to crop. The file route delivers non-images.
         if (! $asset->isImage()) {
             return null;
+        }
+
+        if ($spec->isPassthrough()) {
+            $original = $this->media->contents($asset);
+
+            return $original === null ? null : [$original, $asset->mime_type];
+        }
+
+        // Check the cache before reading the original, which can be a download from remote storage.
+        $path = $this->path($asset, $spec);
+        $cached = $this->cachedBytes($asset, $path);
+
+        if ($cached !== null) {
+            return [$cached, $asset->mime_type];
         }
 
         $original = $this->media->contents($asset);
 
         if ($original === null) {
             return null;
-        }
-
-        if ($spec->isPassthrough()) {
-            return [$original, $asset->mime_type];
-        }
-
-        $disk = $this->media->diskFor($asset);
-        $path = $this->path($asset, $spec);
-
-        if ($disk->exists($path)) {
-            $cached = $disk->get($path);
-
-            if (is_string($cached)) {
-                return [$cached, $asset->mime_type];
-            }
         }
 
         $rendered = $this->processor->render(
@@ -78,9 +77,27 @@ final readonly class RenditionService
             $asset->mime_type,
         );
 
-        $disk->put($path, $rendered);
+        $this->media->diskFor($asset)->put($path, $rendered);
 
         return [$rendered, $asset->mime_type];
+    }
+
+    /**
+     * The bytes cached at `$path` on the asset's disk, or null when there are none.
+     *
+     * @internal shared with {@see PdfThumbnailService}
+     */
+    public function cachedBytes(MediaAsset $asset, string $path): ?string
+    {
+        $disk = $this->media->diskFor($asset);
+
+        if (! $disk->exists($path)) {
+            return null;
+        }
+
+        $cached = $disk->get($path);
+
+        return is_string($cached) ? $cached : null;
     }
 
     /**
@@ -89,7 +106,7 @@ final readonly class RenditionService
      * The version id and the focal point are both in the name. That is what
      * makes invalidation a non-event: replacing the file or moving the
      * crosshair changes the path, so the stale derivative is unreachable the
-     * instant the asset row is saved — no cache-busting query string, no purge
+     * instant the asset row is saved. There is no cache-busting query string, no purge
      * that can be forgotten, and no window where a page shows the old crop.
      */
     public function path(MediaAsset $asset, RenditionSpec $spec): string
@@ -130,7 +147,7 @@ final readonly class RenditionService
     {
         $spec = RenditionSpec::make($width, $height, $fit, $this->maxDimension);
 
-        return SignedUrls::make($asset, MediaConfig::string('route.name', 'media-library.render'), MediaConfig::string('delivery.restricted_render_route.name', 'media-library.restricted-render'), array_filter([
+        return SignedUrls::make($asset, DeliveryRoutes::renderName(), DeliveryRoutes::restrictedRenderName(), array_filter([
             'uuid' => $asset->uuid,
             'w' => $spec->width,
             'h' => $spec->height,
@@ -147,7 +164,7 @@ final readonly class RenditionService
         return RenditionSpec::make($width, $height, $fit, $this->maxDimension);
     }
 
-    /** Three decimal places is one part in a thousand of the image — finer than any crosshair can express. */
+    /** Three decimal places is one part in a thousand of the image, finer than any crosshair can express. */
     private function focalSegment(float $value): string
     {
         return str_replace('.', '', number_format(max(0.0, min(1.0, $value)), 3, '.', ''));

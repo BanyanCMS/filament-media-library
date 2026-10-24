@@ -12,7 +12,7 @@ use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
- * GET /media/{uuid}/restricted-file — a file in a members-only or password folder.
+ * GET /media/{uuid}/restricted-file: a file in a members-only or password folder.
  *
  * Behind `signed` (a short-lived address, issued only to someone who could
  * browse the folder) and the host's session middleware (`delivery.restricted_middleware`,
