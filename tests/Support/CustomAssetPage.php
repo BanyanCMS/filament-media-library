@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Tests\Support;
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
 
 final class CustomAssetPage extends MediaAssetPage
 {

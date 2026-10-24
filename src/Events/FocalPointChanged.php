@@ -7,37 +7,21 @@ namespace Banyan\FilamentMediaLibrary\Events;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 
 /** The point every crop keeps was moved. */
-final readonly class FocalPointChanged implements MediaAssetEvent
+final readonly class FocalPointChanged extends AssetEvent
 {
-    use AssetSubject;
+    public const string NAME = 'media.asset.refocused';
 
     public function __construct(
         public MediaAsset $asset,
-        public string $actor,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.asset.refocused';
-    }
-
-    public function assetId(): int
-    {
-        return $this->asset->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+        string $actor,
+    ) {
+        parent::__construct($asset->id, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'asset_id' => $this->asset->id,
-            'uuid' => $this->asset->uuid,
-            'kind' => $this->asset->kind->value,
-            'folder_id' => $this->asset->folder_id,
+            ...$this->reference($this->asset),
             'focal_x' => $this->asset->focal_x,
             'focal_y' => $this->asset->focal_y,
         ];

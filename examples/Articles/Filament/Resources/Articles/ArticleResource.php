@@ -9,7 +9,7 @@ use Banyan\FilamentMediaLibrary\Examples\Articles\Filament\Resources\Articles\Pa
 use Banyan\FilamentMediaLibrary\Examples\Articles\Filament\Resources\Articles\Pages\ListArticles;
 use Banyan\FilamentMediaLibrary\Examples\Articles\Models\Article;
 use Banyan\FilamentMediaLibrary\Forms\MediaPicker;
-use Banyan\FilamentMediaLibrary\Rendering\MediaThumbnailColumn;
+use Banyan\FilamentMediaLibrary\Tables\MediaThumbnailColumn;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;

@@ -127,7 +127,7 @@ The asset URL uses the asset's uuid, not its auto-increment id. If someone paste
 
 `MediaPicker` and `RenditionService` are plain classes. They work without the plugin on the panel. But without the pages, you cannot see an asset's usage, edit its focal point or replace its file. So register the plugin.
 
-The plugin also adds routes to your **application**, not the panel. These are the signed rendition route `GET /media/{uuid}/render`, the signed file route `GET /media/{uuid}/file`, and two routes for files in restricted folders (`restricted-file` and `restricted-render`, under the same prefix, behind your `web` middleware). Make sure nothing else in your app uses those paths. You can move them with `media-library.route.path` and `media-library.delivery.*`.
+The plugin also adds routes to your **application**, not the panel. These are the signed rendition route `GET /media/{uuid}/render`, the signed file route `GET /media/{uuid}/file`, and two routes for files in restricted folders (`restricted-file` and `restricted-render`, under the same prefix, behind your `web` middleware). Make sure nothing else in your app uses those paths. You can move them with `media-library.routes.*`.
 
 If you accept video or large documents, raise PHP's `upload_max_filesize` and `post_max_size`, and Livewire's temporary-upload limit. Set them to match the biggest `uploads.kinds.*.max_size` you allow.
 
@@ -297,7 +297,7 @@ If an id can reach the model from somewhere other than the picker (an API, an im
 ### Table column
 
 ```php
-use Banyan\FilamentMediaLibrary\Rendering\MediaThumbnailColumn;
+use Banyan\FilamentMediaLibrary\Tables\MediaThumbnailColumn;
 
 MediaThumbnailColumn::make('hero_id')->label('Hero')->thumbnailSize(96, 64),
 ```
@@ -853,7 +853,7 @@ On the asset page, choose **More**, then **Replace file**, to upload a new file 
 To replace from code:
 
 ```php
-app(MediaGovernanceService::class)->replace($asset, $bytes, 'campus-2027.jpg', 'image/jpeg', (string) $user->id);
+app(MediaGovernanceService::class)->replace($asset, $bytes, 'campus-2027.jpg', (string) $user->id);
 ```
 
 ### The focal point
@@ -979,7 +979,7 @@ Upload the audio (MP3, M4A or WAV) with a title. On its page, **More, Transcript
 
 ```html
 <audio controls preload="metadata" src="…/file?v=11&signature=…">…</audio>
-<details class="bn-media__transcript">
+<details class="ml-library__transcript">
     <summary>Transcript</summary>
     <p>Good morning, and welcome to the school. …</p>
 </details>
@@ -1013,19 +1013,19 @@ it('files a PDF with a title, and refuses one without', function (): void {
     $pdf = "%PDF-1.4\n1 0 obj\n<< /Type /Page >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
     $media = app(MediaGovernanceService::class);
 
-    $report = $media->upload($pdf, 'ar-2025.pdf', 'application/pdf', '', '1', null, 'Annual report 2025');
+    $report = $media->upload($pdf, 'ar-2025.pdf', '', '1', null, 'Annual report 2025');
 
     expect($report->kind)->toBe(MediaKind::Document)
         ->and($report->page_count)->toBe(1)
         ->and($report->fileUrl())->toContain('/file');
 
-    expect(fn () => $media->upload($pdf, 'ar.pdf', 'application/pdf', '', '1'))->toThrow(TitleRequired::class);
+    expect(fn () => $media->upload($pdf, 'ar.pdf', '', '1'))->toThrow(TitleRequired::class);
 });
 
 it('refuses HTML that is named .pdf, and writes nothing', function (): void {
     $html = '<html><script>alert(1)</script></html>';
 
-    expect(fn () => app(MediaGovernanceService::class)->upload($html, 'report.pdf', 'application/pdf', '', '1', null, 'Report'))
+    expect(fn () => app(MediaGovernanceService::class)->upload($html, 'report.pdf', '', '1', null, 'Report'))
         ->toThrow(ExtensionMismatch::class);
 
     expect(MediaAsset::query()->count())->toBe(0);
@@ -1076,7 +1076,7 @@ $actor = (string) $admin->id;
 $publications = $folders->create(null, 'Publications', $actor);
 $reports = $folders->create($publications, 'Annual reports', $actor);
 
-$media->upload(file_get_contents($path), 'ar-2025.pdf', 'application/pdf', '', $actor, null, 'Annual report 2025', $reports);
+$media->upload(file_get_contents($path), 'ar-2025.pdf', '', $actor, null, 'Annual report 2025', $reports);
 
 // Move what is already there.
 $folders->moveAssets(MediaAsset::query()->tagged('annual-report')->get()->all(), $reports, $actor);
@@ -1269,15 +1269,17 @@ The README section [Data model and querying from your code](../README.md#data-mo
 
 | Table | Columns |
 | --- | --- |
-| assets | `id`, `uuid` (unique), `disk`, `path`, `filename`, `mime_type`, `size_bytes`, `width`, `height`, `alt_text` (not null), `focal_x`, `focal_y` (decimal, default 0.5), `license_expires_at` (nullable timestamp), `current_version_id` (nullable), `uploaded_by` (nullable), `created_at`, `updated_at` |
-| versions | `id`, `media_asset_id`, `disk`, `path`, `checksum`, `size_bytes`, `width`, `height`, `uploaded_by`, `created_at` (no `updated_at`) |
+| assets | `id`, `uuid` (unique), `kind` (default `image`), `disk`, `path`, `filename`, `mime_type`, `size_bytes`, `width`, `height`, `duration_seconds`, `page_count`, `title` (nullable), `alt_text` (nullable; the repository requires it for an image), `focal_x`, `focal_y` (decimal, default 0.5), `license_expires_at` (nullable timestamp), `current_version_id` (nullable), `uploaded_by` (nullable), `folder_id` (nullable), `captions_asset_id` (nullable), `transcript` (nullable text), `created_at`, `updated_at` |
+| versions | `id`, `media_asset_id`, `kind`, `disk`, `path`, `checksum`, `size_bytes`, `width`, `height`, `uploaded_by`, `created_at` (no `updated_at`) |
 | tags | `id`, `name` (unique), `created_at`, `updated_at` |
 | asset_tag | `media_asset_id`, `media_tag_id` (primary key on both; no timestamps) |
 | usages | `id`, `media_asset_id`, `usable_type`, `usable_id` (string), `field`, `locale` (nullable), `created_at` |
+| folders | `id`, `uuid` (unique), `parent_id` (nullable), `name`, `path`, `depth`, `access` (default `inherit`), `password_hash` (nullable), `owner_id`, `created_by`, `site_id` (all nullable), `created_at`, `updated_at` |
+| folder_members | `media_folder_id`, `user_id` (primary key on both), `role` (default `view`) |
 
 The package does not add a foreign key from `current_version_id` to versions. Versions already point at assets, and the cycle would make the first insert impossible.
 
-If some rows in your existing library have no alt text, the column is still not null. Backfill a real description first. The library is built so that an empty alt text cannot be stored.
+If some images in your existing library have no alt text, backfill a real description first. The column is nullable, but the repository refuses to store an image without alt text.
 
 ### The disk, S3 and moving later
 
@@ -1327,7 +1329,7 @@ The files are copied to `lang/vendor/media-library/{locale}/media.php`. Keys are
 
 ![The library in dark mode](images/dark.png)
 
-The library follows your panel's palette and Filament's dark mode with no setup. Its stylesheet (`resources/css/media.css`, registered as a Filament asset) reads every colour, size and radius from `--ml-*` custom properties declared on `.bn-media`. Each property falls back to Filament's own variables (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`). A `.dark` variant sets the colours that need to differ. For example:
+The library follows your panel's palette and Filament's dark mode with no setup. Its stylesheet (`resources/css/media.css`, registered as a Filament asset) reads every colour, size and radius from `--ml-*` custom properties declared on `.ml-library`. Each property falls back to Filament's own variables (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`). A `.dark` variant sets the colours that need to differ. For example:
 
 | Token | Falls back to (light) | Falls back to (dark) |
 | --- | --- | --- |
@@ -1338,10 +1340,10 @@ The library follows your panel's palette and Filament's dark mode with no setup.
 | `--ml-warning`, `--ml-state-expired` | `--warning-700` | `--warning-400` |
 | `--ml-focus-ring` | `--primary-600` | `--primary-500` |
 
-To change a token, set it on `.bn-media` in your own stylesheet (a Filament custom theme or a render hook):
+To change a token, set it on `.ml-library` in your own stylesheet (a Filament custom theme or a render hook). The defaults have no specificity, so your rule wins whatever order the stylesheets load in:
 
 ```css
-.bn-media {
+.ml-library {
     --ml-radius-card: 0.25rem;
     --ml-state-expired: #b42318;
 }
@@ -1355,10 +1357,10 @@ Spacing, type sizes and the control height are tokens too (`--ml-space-*`, `--ml
 | --- | --- |
 | `driver` | `gd` or `imagick`; `ext-gd` or `ext-imagick` must be installed. |
 | `renditions.max_dimension`, `renditions.quality` | A hard ceiling on requested sizes, and encoder quality. Lower the ceiling if you never need big images, because the endpoint multiplies resource use. |
-| `route.path`, `route.name` | The signed route. The path must contain `{uuid}`. |
+| `routes.*` | The `path` and `name` of the four routes: `render`, `file`, `restricted_file` and `restricted_render`. Every path must contain `{uuid}`. |
 | `abilities.view`, `abilities.manage`, `abilities.manage_all` | See [§2](#2-who-may-upload-replace-and-delete). |
 | `uploads.kinds.*`, `uploads.archive.max_entries`, `uploads.scanner` | Which files are accepted, how big, and what scans them. See the [README](../README.md#file-kinds-and-accepted-types). |
-| `delivery.*` | The file route, temporary-URL lifetimes and the restricted routes ([§12](#12-restricted-files-and-public-pages)). |
+| `delivery.*` | Temporary-URL lifetimes, `redirect_to_storage` and the restricted-route middleware ([§12](#12-restricted-files-and-public-pages)). |
 | `folders.*` | `enabled`, `max_depth`, `unlock_minutes` and `member_label` ([§10](#10-folders), [§11](#11-folder-access)). |
 | `expiry_warning_days` | The window for "expiring soon" (minimum 1). |
 
@@ -1395,7 +1397,7 @@ function pngBytes(int $width = 400, int $height = 200): string
 function uploadAsset(string $alt = 'A red and blue split', string $actor = '1', ?string $expires = null): MediaAsset
 {
     return app(MediaGovernanceService::class)->upload(
-        pngBytes(), 'split.png', 'image/png', $alt, $actor,
+        pngBytes(), 'split.png', $alt, $actor,
         $expires === null ? null : new DateTimeImmutable($expires),
     );
 }
@@ -1580,13 +1582,9 @@ Know these before you rely on the plugin:
 
 ### Upgrading
 
-The package is 0.x. Read the release notes before each update. After every update, run `php artisan filament:assets` and `php artisan migrate`. New migrations are added, and an old one is never changed. Moving from the image-only releases to file kinds and folders adds three migrations:
+The package is 0.x. Read the release notes before each update. After every update, run `php artisan filament:assets` and `php artisan migrate`.
 
-- the `kind`, `title`, `page_count` and `duration_seconds` columns (existing rows read as images)
-- the captions and transcript columns
-- the folder tables
-
-Existing assets stay at the library root and keep their behaviour.
+Version 0.2 renames classes and CSS classes, moves the route settings and drops the `$mimeType` argument of `upload()` and `replace()`. It also replaces the four 0.1 migrations with one. [UPGRADE.md](../UPGRADE.md) lists every change from 0.1.
 
 Your own code should depend only on these public pieces. Treat the rest as internal:
 

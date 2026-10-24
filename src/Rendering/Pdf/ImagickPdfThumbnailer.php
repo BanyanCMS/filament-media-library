@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Rendering;
+namespace Banyan\FilamentMediaLibrary\Rendering\Pdf;
 
 use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
 use Imagick;

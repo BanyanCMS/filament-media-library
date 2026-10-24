@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Support;
+namespace Banyan\FilamentMediaLibrary\Folders;
 
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 

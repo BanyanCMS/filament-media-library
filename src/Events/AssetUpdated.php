@@ -8,40 +8,24 @@ use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use DateTimeInterface;
 
 /** Alt text, title or licence expiry was edited. Whether the text changed is recorded, never its value. */
-final readonly class AssetUpdated implements MediaAssetEvent
+final readonly class AssetUpdated extends AssetEvent
 {
-    use AssetSubject;
+    public const string NAME = 'media.asset.updated';
 
     public function __construct(
         public MediaAsset $asset,
         public bool $altTextChanged,
         public ?DateTimeInterface $licenseExpiresAt,
-        public string $actor,
+        string $actor,
         public bool $titleChanged = false,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.asset.updated';
-    }
-
-    public function assetId(): int
-    {
-        return $this->asset->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+    ) {
+        parent::__construct($asset->id, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'asset_id' => $this->asset->id,
-            'uuid' => $this->asset->uuid,
-            'kind' => $this->asset->kind->value,
-            'folder_id' => $this->asset->folder_id,
+            ...$this->reference($this->asset),
             'alt_text_changed' => $this->altTextChanged,
             'title_changed' => $this->titleChanged,
             'license_expires_at' => $this->licenseExpiresAt?->format(DATE_ATOM),

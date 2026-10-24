@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Tests\Support\Images;
 use Banyan\FilamentMediaLibrary\Tests\Support\User;
 use Illuminate\Http\UploadedFile;
@@ -28,7 +28,7 @@ function makeFolder(string $name, ?MediaFolder $parent = null, ?int $site = null
 /** An image whose filename is `$name.png`, so a page's HTML tells one asset from another. */
 function imageFile(string $name): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload(Images::splitPng(), $name.'.png', 'image/png', 'Alt for '.$name, '1');
+    return app(MediaGovernanceService::class)->upload(Images::splitPng(), $name.'.png', 'Alt for '.$name, '1');
 }
 
 function fileIn(MediaFolder $folder, string $name): MediaAsset

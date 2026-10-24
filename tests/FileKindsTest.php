@@ -32,7 +32,7 @@ covers(UploadGuard::class, FileTypes::class, MediaKinds::class, MediaKind::class
 
 function uploadFile(string $binary, string $filename, ?string $title = 'A title', string $alt = ''): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload($binary, $filename, 'application/octet-stream', $alt, '1', null, $title);
+    return app(MediaGovernanceService::class)->upload($binary, $filename, $alt, '1', null, $title);
 }
 
 /** Nothing reached the database or the disk. */
@@ -74,7 +74,7 @@ it('stores a file of every accepted kind with its detected type', function (Clos
 })->with('accepted files');
 
 it('ignores the type the client claimed', function (): void {
-    $asset = app(MediaGovernanceService::class)->upload(Files::pdf(), 'report.pdf', 'image/png', '', '1', null, 'Report');
+    $asset = app(MediaGovernanceService::class)->upload(Files::pdf(), 'report.pdf', '', '1', null, 'Report');
 
     expect($asset->mime_type)->toBe('application/pdf')->and($asset->kind)->toBe(MediaKind::Document);
 });
@@ -158,12 +158,12 @@ it('requires a title for every kind but images, and alt text for images', functi
         expect(fn () => uploadFile(Files::pdf(), 'report.pdf', $title))->toThrow(TitleRequired::class);
     }
 
-    expect(fn () => app(MediaGovernanceService::class)->upload(Images::splitPng(), 'a.png', 'image/png', '  ', '1'))
+    expect(fn () => app(MediaGovernanceService::class)->upload(Images::splitPng(), 'a.png', '  ', '1'))
         ->toThrow(AltTextRequired::class);
 
     expectNothingWritten();
 
-    $image = app(MediaGovernanceService::class)->upload(Images::splitPng(), 'a.png', 'image/png', 'Alt', '1', null, '  A nice picture ');
+    $image = app(MediaGovernanceService::class)->upload(Images::splitPng(), 'a.png', 'Alt', '1', null, '  A nice picture ');
 
     expect($image->title)->toBe('A nice picture')->and($image->kind)->toBe(MediaKind::Image);
 });
@@ -179,7 +179,7 @@ it('keeps existing image behaviour: alt text, dimensions and the image kind', fu
 
 it('replaces a file with another of the same kind and keeps the history', function (): void {
     $asset = uploadFile(Files::pdf(), 'v1.pdf');
-    $version = app(MediaGovernanceService::class)->replace($asset, Files::pdf()."\n%%v2", 'v2.pdf', 'application/pdf', '1');
+    $version = app(MediaGovernanceService::class)->replace($asset, Files::pdf()."\n%%v2", 'v2.pdf', '1');
 
     expect($version->kind)->toBe(MediaKind::Document)
         ->and($asset->refresh()->versions)->toHaveCount(2)
@@ -191,8 +191,8 @@ it('refuses to replace a pdf with an image, or an image with a pdf, and writes n
     $image = Images::upload();
     $files = count(Storage::disk('media-lib-test')->allFiles());
 
-    expect(fn () => app(MediaGovernanceService::class)->replace($pdf, Images::splitPng(), 'a.png', 'image/png', '1'))->toThrow(KindMismatch::class)
-        ->and(fn () => app(MediaGovernanceService::class)->replace($image, Files::pdf(), 'a.pdf', 'application/pdf', '1'))->toThrow(KindMismatch::class)
+    expect(fn () => app(MediaGovernanceService::class)->replace($pdf, Images::splitPng(), 'a.png', '1'))->toThrow(KindMismatch::class)
+        ->and(fn () => app(MediaGovernanceService::class)->replace($image, Files::pdf(), 'a.pdf', '1'))->toThrow(KindMismatch::class)
         ->and(DB::table('lib_versions')->count())->toBe(2)
         ->and(Storage::disk('media-lib-test')->allFiles())->toHaveCount($files);
 });
@@ -268,7 +268,7 @@ it('adds the kind to every asset event payload', function (): void {
     $service = app(MediaGovernanceService::class);
 
     $asset = uploadFile(Files::pdf(), 'report.pdf', 'Report');
-    $service->replace($asset, Files::pdf(), 'r2.pdf', 'application/pdf', '1');
+    $service->replace($asset, Files::pdf(), 'r2.pdf', '1');
     $service->updateDetails($asset->refresh(), '', null, '1', 'Report 2026');
     $service->setFocalPoint($asset, 0.1, 0.1, '1');
     $service->syncTags($asset, ['forms'], '1');

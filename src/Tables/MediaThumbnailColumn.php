@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Rendering;
+namespace Banyan\FilamentMediaLibrary\Tables;
 
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
+use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Model;
 

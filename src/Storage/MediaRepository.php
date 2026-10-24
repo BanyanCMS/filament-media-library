@@ -53,15 +53,14 @@ final readonly class MediaRepository
     /**
      * Create an asset from raw bytes, together with its first version.
      *
-     * `$mimeType` is what the client claimed and is ignored: the type is
-     * detected from the bytes ({@see UploadGuard}) and that is what is stored.
+     * The type is detected from the bytes ({@see UploadGuard}), never taken
+     * from the client, and that is what is stored.
      *
      * @throws AltTextRequired|TitleRequired|UnreadableImage|MediaException
      */
     public function store(
         string $binary,
         string $filename,
-        string $mimeType,
         string $altText,
         ?int $uploadedBy = null,
         ?DateTimeInterface $licenseExpiresAt = null,
@@ -125,7 +124,6 @@ final readonly class MediaRepository
         MediaAsset $asset,
         string $binary,
         string $filename,
-        string $mimeType,
         ?int $uploadedBy = null,
     ): MediaVersion {
         $inspection = $this->guard->inspect($binary, $filename, $asset->kind);

@@ -1,5 +1,5 @@
 @php
-    /** @var \Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage $this */
+    /** @var \Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage $this */
     $assets = $this->assets();
     $tags = $this->tagOptions();
     $expiry = $this->expirySummary();
@@ -11,19 +11,19 @@
 @endphp
 
 <x-filament-panels::page>
-<div class="bn-media">
+<div class="ml-library">
     <x-filament::section>
-        <p class="bn-media__intro">{{ __('media-library::media.intro') }}</p>
+        <p class="ml-library__intro">{{ __('media-library::media.intro') }}</p>
 
         @if ($expiry->hasIssues())
             <div
-                class="bn-media__expiry-alert"
+                class="ml-library__expiry-alert"
                 role="{{ $expiry->expiredReferenced > 0 ? 'alert' : 'status' }}"
-                aria-labelledby="bn-media-expiry-heading"
+                aria-labelledby="ml-expiry-heading"
             >
-                <div class="bn-media__expiry-copy">
-                    <div class="bn-media__expiry-title" id="bn-media-expiry-heading">
-                        <x-filament::icon icon="heroicon-o-shield-exclamation" class="bn-media__banner-icon" />
+                <div class="ml-library__expiry-copy">
+                    <div class="ml-library__expiry-title" id="ml-expiry-heading">
+                        <x-filament::icon icon="heroicon-o-shield-exclamation" class="ml-library__banner-icon" />
                         <strong>{{ __('media-library::media.expiry.heading') }}</strong>
                     </div>
                     <p>
@@ -32,13 +32,13 @@
                         {{ trans_choice('media-library::media.expiry.soon', $expiry->expiringSoon, ['count' => $expiry->expiringSoon, 'days' => $expiry->warningDays]) }}
                     </p>
                     @if ($expiry->expiredReferenced > 0)
-                        <p class="bn-media__expiry-critical">
+                        <p class="ml-library__expiry-critical">
                             {{ trans_choice('media-library::media.expiry.referenced', $expiry->expiredReferenced, ['count' => $expiry->expiredReferenced]) }}
                         </p>
                     @endif
                 </div>
 
-                <div class="bn-media__expiry-actions">
+                <div class="ml-library__expiry-actions">
                     @if ($expiry->expired > 0)
                         <x-filament::button size="sm" color="gray" wire:click="showExpiredAssets">
                             {{ __('media-library::media.expiry.review_expired') }}
@@ -53,13 +53,13 @@
             </div>
         @endif
 
-        <div class="bn-media__filters" role="search">
+        <div class="ml-library__filters" role="search">
             {{-- Filament's own inputs, so the filters look like every other form in the panel. --}}
-            <div class="bn-media__filter">
-                <label class="bn-media__filter-label" for="bn-media-search">{{ __('media-library::media.filter.search') }}</label>
+            <div class="ml-library__filter">
+                <label class="ml-library__filter-label" for="ml-search">{{ __('media-library::media.filter.search') }}</label>
                 <x-filament::input.wrapper prefix-icon="heroicon-m-magnifying-glass">
                     <x-filament::input
-                        id="bn-media-search"
+                        id="ml-search"
                         type="search"
                         wire:model.live.debounce.400ms="search"
                         :placeholder="__('media-library::media.filter.search')"
@@ -67,10 +67,10 @@
                 </x-filament::input.wrapper>
             </div>
 
-            <div class="bn-media__filter">
-                <label class="bn-media__filter-label" for="bn-media-tag">{{ __('media-library::media.filter.tag') }}</label>
+            <div class="ml-library__filter">
+                <label class="ml-library__filter-label" for="ml-tag">{{ __('media-library::media.filter.tag') }}</label>
                 <x-filament::input.wrapper>
-                    <x-filament::input.select id="bn-media-tag" wire:model.live="tagId">
+                    <x-filament::input.select id="ml-tag" wire:model.live="tagId">
                         <option value="">{{ __('media-library::media.filter.all_tags') }}</option>
                         @foreach ($tags as $id => $name)
                             <option value="{{ $id }}">{{ $name }}</option>
@@ -79,7 +79,7 @@
                 </x-filament::input.wrapper>
             </div>
 
-            <label class="bn-media__filter bn-media__filter--check">
+            <label class="ml-library__filter ml-library__filter--check">
                 <x-filament::input.checkbox wire:model.live="expiredOnly" />
                 <span>{{ __('media-library::media.filter.expired_only') }}</span>
             </label>
@@ -92,22 +92,22 @@
         </div>
 
         @if ($folders && $currentFolder !== null && $this->isFiltered())
-            <label class="bn-media__filter bn-media__filter--check">
+            <label class="ml-library__filter ml-library__filter--check">
                 <x-filament::input.checkbox wire:model.live="wholeLibrary" />
                 <span>{{ __('media-library::media.folders.whole_library') }}</span>
             </label>
         @endif
 
-        <div class="{{ $folders ? 'bn-media__layout' : '' }}">
+        <div class="{{ $folders ? 'ml-library__layout' : '' }}">
         @if ($folders)
-            <nav class="bn-media__folders" aria-label="{{ __('media-library::media.folders.nav') }}">
-                <ul role="tree" class="bn-media__tree" aria-label="{{ __('media-library::media.folders.nav') }}">
+            <nav class="ml-library__folders" aria-label="{{ __('media-library::media.folders.nav') }}">
+                <ul role="tree" class="ml-library__tree" aria-label="{{ __('media-library::media.folders.nav') }}">
                     <li role="treeitem" aria-selected="{{ $currentFolder === null ? 'true' : 'false' }}" aria-expanded="true">
-                        <div class="bn-media__tree-row">
-                            <span class="bn-media__tree-spacer" aria-hidden="true"></span>
+                        <div class="ml-library__tree-row">
+                            <span class="ml-library__tree-spacer" aria-hidden="true"></span>
                             <button
                                 type="button"
-                                class="bn-media__tree-link {{ $currentFolder === null ? 'is-current' : '' }}"
+                                class="ml-library__tree-link {{ $currentFolder === null ? 'is-current' : '' }}"
                                 wire:click="openFolder"
                                 @if ($currentFolder === null) aria-current="true" @endif
                             >
@@ -121,19 +121,19 @@
             </nav>
         @endif
 
-        <div class="bn-media__main">
+        <div class="ml-library__main">
         @if ($folders && $currentFolder !== null)
             <nav aria-label="{{ __('media-library::media.folders.breadcrumb') }}">
-                <ol class="bn-media__crumbs">
+                <ol class="ml-library__crumbs">
                     <li>
-                        <button type="button" class="bn-media__crumb-link" wire:click="openFolder">{{ __('media-library::media.folders.all') }}</button>
+                        <button type="button" class="ml-library__crumb-link" wire:click="openFolder">{{ __('media-library::media.folders.all') }}</button>
                     </li>
                     @foreach ($this->breadcrumbs() as $crumb)
                         <li>
                             @if ($crumb->id === $currentFolder->id)
-                                <span class="bn-media__crumb-current" aria-current="page">{{ $crumb->name }}</span>
+                                <span class="ml-library__crumb-current" aria-current="page">{{ $crumb->name }}</span>
                             @else
-                                <button type="button" class="bn-media__crumb-link" wire:click="openFolder('{{ $crumb->uuid }}')">{{ $crumb->name }}</button>
+                                <button type="button" class="ml-library__crumb-link" wire:click="openFolder('{{ $crumb->uuid }}')">{{ $crumb->name }}</button>
                             @endif
                         </li>
                     @endforeach
@@ -142,7 +142,7 @@
         @endif
 
         @if ($canSelect && count($selected) > 0)
-            <div class="bn-media__selection" role="status">
+            <div class="ml-library__selection" role="status">
                 <span>{{ trans_choice('media-library::media.folders.selected', count($selected), ['count' => count($selected)]) }}</span>
                 <x-filament::button size="sm" color="gray" wire:click="mountAction('moveSelected')">
                     {{ __('media-library::media.folders.move_selected') }}
@@ -155,24 +155,24 @@
 
         @if ($locked !== null)
             {{-- A password folder waits to be unlocked: no counts, no files, no sub-folders. --}}
-            <div class="bn-media__locked-panel" role="status">
-                <x-filament::icon icon="heroicon-o-lock-closed" class="bn-media__banner-icon" aria-hidden="true" />
+            <div class="ml-library__locked-panel" role="status">
+                <x-filament::icon icon="heroicon-o-lock-closed" class="ml-library__banner-icon" aria-hidden="true" />
                 <strong>{{ __('media-library::media.access.locked_heading') }}</strong>
-                <p class="bn-media__meta">{{ __('media-library::media.access.locked_text', ['minutes' => max(1, (int) config('media-library.folders.unlock_minutes', 30))]) }}</p>
+                <p class="ml-library__meta">{{ __('media-library::media.access.locked_text', ['minutes' => max(1, (int) config('media-library.folders.unlock_minutes', 30))]) }}</p>
                 <x-filament::button icon="heroicon-o-lock-open" wire:click="mountAction('unlockFolder')">
                     {{ __('media-library::media.access.unlock') }}
                 </x-filament::button>
             </div>
         @else
         @php $total = $this->totalAssets(); @endphp
-        <p class="bn-media__meta bn-media__count" aria-live="polite">
+        <p class="ml-library__meta ml-library__count" aria-live="polite">
             {{ count($assets) < $total
                 ? __('media-library::media.count_partial', ['shown' => count($assets), 'total' => $total])
                 : trans_choice('media-library::media.count', $total, ['count' => $total]) }}
         </p>
 
         @if ($assets === [] && $subfolders === [])
-            <p class="bn-media__empty">
+            <p class="ml-library__empty">
                 @if ($this->isFiltered())
                     {{ __('media-library::media.empty_filtered') }}
                 @elseif ($currentFolder !== null)
@@ -182,7 +182,7 @@
                 @endif
             </p>
         @else
-            <ul class="bn-media__grid" role="list">
+            <ul class="ml-library__grid" role="list">
                 @foreach ($subfolders as $subfolder)
                     @php
                         // WCAG 2.5.3 (label in name): the accessible name must contain every word shown on the tile.
@@ -192,24 +192,24 @@
                             .' '.($folderLocked ? __('media-library::media.access.locked') : $folderItems)
                             .(! $folderLocked && $this->isFolderMembersOnly($subfolder) ? ' '.__('media-library::media.access.members_only') : '');
                     @endphp
-                    <li class="bn-media__card bn-media__folder-card" wire:key="folder-{{ $subfolder->id }}">
+                    <li class="ml-library__card ml-library__folder-card" wire:key="folder-{{ $subfolder->id }}">
                         <button
                             type="button"
-                            class="bn-media__folder-link"
+                            class="ml-library__folder-link"
                             wire:click="openFolder('{{ $subfolder->uuid }}')"
                             aria-label="{{ $folderName }}"
                         >
                             <x-filament::icon icon="heroicon-o-folder" aria-hidden="true" />
-                            <span class="bn-media__folder-name">{{ $subfolder->name }}</span>
+                            <span class="ml-library__folder-name">{{ $subfolder->name }}</span>
                             @if ($folderLocked)
-                                <span class="bn-media__chip bn-media__flag--warn">
+                                <span class="ml-library__chip ml-library__flag--warn">
                                     <x-filament::icon icon="heroicon-m-lock-closed" aria-hidden="true" />
                                     {{ __('media-library::media.access.locked') }}
                                 </span>
                             @else
-                                <span class="bn-media__meta">{{ $folderItems }}</span>
+                                <span class="ml-library__meta">{{ $folderItems }}</span>
                                 @if ($this->isFolderMembersOnly($subfolder))
-                                    <span class="bn-media__chip">{{ __('media-library::media.access.members_only') }}</span>
+                                    <span class="ml-library__chip">{{ __('media-library::media.access.members_only') }}</span>
                                 @endif
                             @endif
                         </button>
@@ -217,9 +217,9 @@
                 @endforeach
 
                 @foreach ($assets as $asset)
-                    <li class="bn-media__card" wire:key="asset-{{ $asset->id }}">
+                    <li class="ml-library__card" wire:key="asset-{{ $asset->id }}">
                         @if ($canSelect)
-                            <label class="bn-media__select">
+                            <label class="ml-library__select">
                                 <x-filament::input.checkbox
                                     wire:model.live="selected"
                                     :value="$asset->id"
@@ -232,13 +232,13 @@
                              otherwise leave this link with no name at all for a
                              screen reader — exactly the asset that most needs one. --}}
                         <a
-                            class="bn-media__thumb-link"
+                            class="ml-library__thumb-link"
                             href="{{ $this->assetUrl($asset) }}"
                             aria-label="{{ __('media-library::media.actions.open_named', ['name' => $asset->filename]) }}"
                         >
                             @if ($asset->isImage())
                                 <img
-                                    class="bn-media__thumb"
+                                    class="ml-library__thumb"
                                     src="{{ $this->thumbnailUrl($asset) }}"
                                     alt=""
                                     loading="lazy"
@@ -247,7 +247,7 @@
                                 />
                             @elseif (($pdfThumbnail = $this->pdfThumbnailUrl($asset)) !== null)
                                 <img
-                                    class="bn-media__thumb bn-media__thumb--page"
+                                    class="ml-library__thumb ml-library__thumb--page"
                                     src="{{ $pdfThumbnail }}"
                                     alt=""
                                     loading="lazy"
@@ -255,58 +255,58 @@
                                     height="240"
                                 />
                             @else
-                                <span class="bn-media__thumb bn-media__kind-icon">
+                                <span class="ml-library__thumb ml-library__kind-icon">
                                     <x-filament::icon :icon="$asset->kind->icon()" aria-hidden="true" />
                                 </span>
                             @endif
                         </a>
 
-                        <div class="bn-media__card-body">
+                        <div class="ml-library__card-body">
                             {{-- A person names a document ("Annual report 2025"); a filename is what a camera called a picture. --}}
-                            <a class="bn-media__filename" href="{{ $this->assetUrl($asset) }}">{{ $asset->isImage() ? $asset->filename : $asset->displayName() }}</a>
+                            <a class="ml-library__filename" href="{{ $this->assetUrl($asset) }}">{{ $asset->isImage() ? $asset->filename : $asset->displayName() }}</a>
 
-                            <p class="bn-media__meta bn-media__dims">
+                            <p class="ml-library__meta ml-library__dims">
                                 @if ($asset->isImage())
                                     {{ $asset->dimensions() ?? __('media-library::media.unknown_dimensions') }} · {{ $asset->humanSize() }}
                                 @else
-                                    <span class="bn-media__chip bn-media__kind-badge">{{ $asset->kind->label() }}</span>
+                                    <span class="ml-library__chip ml-library__kind-badge">{{ $asset->kind->label() }}</span>
                                     {{ $asset->humanSize() }}
                                 @endif
                             </p>
 
                             @if (! $asset->isImage())
-                                <p class="bn-media__meta bn-media__mono bn-media__subname">{{ $asset->filename }}</p>
+                                <p class="ml-library__meta ml-library__mono ml-library__subname">{{ $asset->filename }}</p>
                             @endif
 
-                            <div class="bn-media__flags">
+                            <div class="ml-library__flags">
                                 @if (! $asset->isImage())
                                     @if (blank($asset->title))
-                                        <span class="bn-media__chip bn-media__flag--warn">{{ __('media-library::media.no_title') }}</span>
+                                        <span class="ml-library__chip ml-library__flag--warn">{{ __('media-library::media.no_title') }}</span>
                                     @endif
                                 @elseif (blank($asset->alt_text))
-                                    <span class="bn-media__chip bn-media__flag--warn">{{ __('media-library::media.no_alt') }}</span>
+                                    <span class="ml-library__chip ml-library__flag--warn">{{ __('media-library::media.no_alt') }}</span>
                                 @else
-                                    <span class="bn-media__meta bn-media__flag--ok">{{ __('media-library::media.has_alt') }}</span>
+                                    <span class="ml-library__meta ml-library__flag--ok">{{ __('media-library::media.has_alt') }}</span>
                                 @endif
 
                                 @if ($asset->isExpired())
-                                    <span class="bn-media__chip bn-media__flag--expired">{{ __('media-library::media.expired') }}</span>
+                                    <span class="ml-library__chip ml-library__flag--expired">{{ __('media-library::media.expired') }}</span>
                                 @elseif ($asset->license_expires_at !== null)
-                                    <span class="bn-media__meta">{{ __('media-library::media.expires', ['date' => $asset->license_expires_at->toFormattedDateString()]) }}</span>
+                                    <span class="ml-library__meta">{{ __('media-library::media.expires', ['date' => $asset->license_expires_at->toFormattedDateString()]) }}</span>
                                 @endif
                             </div>
 
                             @if ($asset->tags->isNotEmpty())
-                                <div class="bn-media__tags">
+                                <div class="ml-library__tags">
                                     @foreach ($asset->tags as $tag)
-                                        <span class="bn-media__chip">{{ $tag->name }}</span>
+                                        <span class="ml-library__chip">{{ $tag->name }}</span>
                                     @endforeach
                                 </div>
                             @endif
                         </div>
 
                         @if ($this->canDelete($asset))
-                            <div class="bn-media__card-actions">
+                            <div class="ml-library__card-actions">
                                 <x-filament::icon-button
                                     icon="heroicon-o-trash"
                                     color="danger"
@@ -316,7 +316,7 @@
                             </div>
                         @elseif ($this->canManageAsset($asset))
                             <span
-                                class="bn-media__protected"
+                                class="ml-library__protected"
                                 role="img"
                                 aria-label="{{ trans_choice('media-library::media.delete_blocked', $this->usageCount($asset), ['count' => $this->usageCount($asset)]) }}"
                             >
@@ -328,7 +328,7 @@
             </ul>
 
             @if (count($assets) < $total)
-                <div class="bn-media__more">
+                <div class="ml-library__more">
                     <x-filament::button color="gray" wire:click="loadMore" wire:loading.attr="disabled">
                         {{ __('media-library::media.actions.load_more') }}
                     </x-filament::button>

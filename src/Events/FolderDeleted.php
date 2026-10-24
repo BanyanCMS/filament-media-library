@@ -5,35 +5,22 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Events;
 
 /** An empty folder was deleted. Carries ids and depth only: a folder name can be personal data. */
-final readonly class FolderDeleted implements MediaFolderEvent
+final readonly class FolderDeleted extends FolderEvent
 {
-    use FolderSubject;
+    public const string NAME = 'media.folder.deleted';
 
     public function __construct(
-        public int $id,
+        int $folderId,
         public string $uuid,
-        public string $actor,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.folder.deleted';
-    }
-
-    public function folderId(): int
-    {
-        return $this->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+        string $actor,
+    ) {
+        parent::__construct($folderId, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'folder_id' => $this->id,
+            'folder_id' => $this->folderId,
             'uuid' => $this->uuid,
         ];
     }

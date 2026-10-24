@@ -9,37 +9,24 @@ namespace Banyan\FilamentMediaLibrary\Events;
  * password change within the password mode has `from === to`. The payload never
  * carries the password, its hash or a fingerprint of either.
  */
-final readonly class FolderAccessChanged implements MediaFolderEvent
+final readonly class FolderAccessChanged extends FolderEvent
 {
-    use FolderSubject;
+    public const string NAME = 'media.folder.access_changed';
 
     public function __construct(
-        public int $id,
+        int $folderId,
         public string $from,
         public string $to,
         public int $membersCount,
-        public string $actor,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.folder.access_changed';
-    }
-
-    public function folderId(): int
-    {
-        return $this->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+        string $actor,
+    ) {
+        parent::__construct($folderId, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'folder_id' => $this->id,
+            'folder_id' => $this->folderId,
             'from' => $this->from,
             'to' => $this->to,
             'members_count' => $this->membersCount,

@@ -53,7 +53,6 @@ final class Images
         return app(MediaGovernanceService::class)->upload(
             self::splitPng(),
             'split.png',
-            'image/png',
             $alt,
             $actor,
             $expires === null ? null : new DateTimeImmutable($expires),

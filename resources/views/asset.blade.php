@@ -1,36 +1,36 @@
 @php
-    /** @var \Banyan\FilamentMediaLibrary\Admin\MediaAssetPage $this */
+    /** @var \Banyan\FilamentMediaLibrary\Pages\MediaAssetPage $this */
     $asset = $this->record();
 @endphp
 
 <x-filament-panels::page>
-<div class="bn-media">
+<div class="ml-library">
     @if ($asset === null)
         <x-filament::section>
-            <p class="bn-media__empty">{{ __('media-library::media.not_found') }}</p>
+            <p class="ml-library__empty">{{ __('media-library::media.not_found') }}</p>
         </x-filament::section>
     @else
-        <p class="bn-media__back">
+        <p class="ml-library__back">
             <a href="{{ $this->libraryUrl() }}">&larr; {{ __('media-library::media.actions.back') }}</a>
         </p>
 
         @if ($asset->isExpired())
-            <div class="bn-media__banner bn-media__banner--expired" role="status">
-                <x-filament::icon icon="heroicon-o-exclamation-triangle" class="bn-media__banner-icon" />
+            <div class="ml-library__banner ml-library__banner--expired" role="status">
+                <x-filament::icon icon="heroicon-o-exclamation-triangle" class="ml-library__banner-icon" />
                 <span>{{ __('media-library::media.expired') }} — {{ $asset->license_expires_at?->toFormattedDateString() }}</span>
             </div>
         @endif
 
-        <div class="bn-media__detail">
+        <div class="ml-library__detail">
             @if ($asset->isImage())
             <x-filament::section :heading="__('media-library::media.detail.focal_heading')">
-                <p id="bn-media-focal-help" class="bn-media__meta bn-media__focal-help">{{ __('media-library::media.detail.focal_help') }}</p>
+                <p id="ml-focal-help" class="ml-library__meta ml-library__focal-help">{{ __('media-library::media.detail.focal_help') }}</p>
 
                 {{-- The crosshair. Fractions of the *rendered* box, so the same
                      value is correct at any preview size and after a replacement
                      of different intrinsic dimensions. --}}
                 <div
-                    class="bn-media__focal"
+                    class="ml-library__focal"
                     x-data="{
                         x: {{ $asset->focal_x }},
                         y: {{ $asset->focal_y }},
@@ -70,12 +70,12 @@
                     }"
                 >
                     <div
-                        class="bn-media__stage"
+                        class="ml-library__stage"
                         x-ref="stage"
                         role="application"
                         tabindex="0"
                         :aria-label="label()"
-                        aria-describedby="bn-media-focal-help"
+                        aria-describedby="ml-focal-help"
                         @mousedown.prevent="dragging = true; fromEvent($event)"
                         @mousemove="dragging && fromEvent($event)"
                         @mouseup.window="dragging = false"
@@ -86,24 +86,24 @@
                         @keydown.arrow-down.prevent="nudge(0, 1, $event.shiftKey)"
                     >
                         <img
-                            class="bn-media__preview"
+                            class="ml-library__preview"
                             src="{{ $this->previewUrl($asset) }}"
                             alt="{{ $asset->alt_text }}"
                             draggable="false"
                         />
 
                         <span
-                            class="bn-media__crosshair"
+                            class="ml-library__crosshair"
                             aria-hidden="true"
                             :style="`left: ${x * 100}%; top: ${y * 100}%`"
                         ></span>
                     </div>
 
-                    <div class="bn-media__focal-controls">
+                    <div class="ml-library__focal-controls">
                         {{-- role="status" makes every drag/nudge announce the new
                              position politely, independent of whether the stage
                              itself still has focus. --}}
-                        <span class="bn-media__focal-readout" role="status" aria-live="polite" x-text="label()"></span>
+                        <span class="ml-library__focal-readout" role="status" aria-live="polite" x-text="label()"></span>
 
                         @if ($this->canManage())
                             <x-filament::button size="sm" color="gray" x-on:click="x = 0.5; y = 0.5">
@@ -118,14 +118,14 @@
 
                     {{-- Two saved crops, so the focal point's effect is visible
                          rather than promised. --}}
-                    <div class="bn-media__crops">
-                        <figure class="bn-media__crop">
+                    <div class="ml-library__crops">
+                        <figure class="ml-library__crop">
                             <img src="{{ $this->cropPreviewUrl($asset, 240, 240) }}" alt="" width="120" height="120" />
-                            <figcaption class="bn-media__meta">1:1</figcaption>
+                            <figcaption class="ml-library__meta">1:1</figcaption>
                         </figure>
-                        <figure class="bn-media__crop">
+                        <figure class="ml-library__crop">
                             <img src="{{ $this->cropPreviewUrl($asset, 320, 120) }}" alt="" width="160" height="60" />
-                            <figcaption class="bn-media__meta">8:3</figcaption>
+                            <figcaption class="ml-library__meta">8:3</figcaption>
                         </figure>
                     </div>
                 </div>
@@ -141,34 +141,34 @@
 
                     @if ($isPdf)
                         <iframe
-                            class="bn-media__pdf"
+                            class="ml-library__pdf"
                             src="{{ $fileUrl }}"
                             title="{{ __('media-library::media.preview.pdf_title', ['name' => $asset->displayName()]) }}"
                         ></iframe>
                     @elseif ($asset->kind === \Banyan\FilamentMediaLibrary\Enums\MediaKind::Video)
-                        <video class="bn-media__player" controls preload="metadata" src="{{ $fileUrl }}">
+                        <video class="ml-library__player" controls preload="metadata" src="{{ $fileUrl }}">
                             @if (($captionsUrl = $asset->captionsUrl()) !== null)
                                 <track kind="captions" src="{{ $captionsUrl }}" label="{{ __('media-library::media.preview.captions_label') }}">
                             @endif
                             {{ __('media-library::media.preview.video_unsupported') }}
                         </video>
                     @elseif ($asset->kind === \Banyan\FilamentMediaLibrary\Enums\MediaKind::Audio)
-                        <audio class="bn-media__player" controls preload="metadata" src="{{ $fileUrl }}">
+                        <audio class="ml-library__player" controls preload="metadata" src="{{ $fileUrl }}">
                             {{ __('media-library::media.preview.audio_unsupported') }}
                         </audio>
                     @else
-                        <div class="bn-media__kind-icon bn-media__kind-icon--large">
+                        <div class="ml-library__kind-icon ml-library__kind-icon--large">
                             <x-filament::icon :icon="$asset->kind->icon()" aria-hidden="true" />
                             <span>{{ $asset->kind->label() }} · {{ $asset->humanSize() }}</span>
                         </div>
                     @endif
 
-                    <p class="bn-media__preview-links">
+                    <p class="ml-library__preview-links">
                         @if ($isPdf)
                             @if ($asset->page_count !== null)
-                                <span class="bn-media__meta">{{ trans_choice('media-library::media.preview.pages', $asset->page_count, ['count' => $asset->page_count]) }}</span>
+                                <span class="ml-library__meta">{{ trans_choice('media-library::media.preview.pages', $asset->page_count, ['count' => $asset->page_count]) }}</span>
                             @endif
-                            <a class="bn-media__link" href="{{ $fileUrl }}" target="_blank" rel="noopener">{{ __('media-library::media.preview.open_tab') }}</a>
+                            <a class="ml-library__link" href="{{ $fileUrl }}" target="_blank" rel="noopener">{{ __('media-library::media.preview.open_tab') }}</a>
                         @endif
                         <x-filament::button tag="a" size="sm" color="gray" icon="heroicon-o-arrow-down-tray" :href="$asset->downloadUrl()">
                             {{ __('media-library::media.preview.download') }}
@@ -176,7 +176,7 @@
                     </p>
 
                     @if (filled($asset->transcript))
-                        <details class="bn-media__transcript" open>
+                        <details class="ml-library__transcript" open>
                             <summary>{{ __('media-library::media.preview.transcript') }}</summary>
                             <p>{{ $asset->transcript }}</p>
                         </details>
@@ -185,7 +185,7 @@
             @endif
 
             <x-filament::section :heading="__('media-library::media.detail.facts_heading')">
-                <dl class="bn-media__facts">
+                <dl class="ml-library__facts">
                     <dt>{{ __('media-library::media.detail.fact_kind') }}</dt>
                     <dd>{{ $asset->kind->label() }}</dd>
 
@@ -243,33 +243,33 @@
                     <dt>{{ __('media-library::media.detail.fact_tags') }}</dt>
                     <dd>
                         @if ($asset->tags->isEmpty())
-                            <span class="bn-media__meta">{{ __('media-library::media.detail.fact_tags_none') }}</span>
+                            <span class="ml-library__meta">{{ __('media-library::media.detail.fact_tags_none') }}</span>
                         @else
                             @foreach ($asset->tags as $tag)
-                                <span class="bn-media__chip">{{ $tag->name }}</span>
+                                <span class="ml-library__chip">{{ $tag->name }}</span>
                             @endforeach
                         @endif
                     </dd>
 
                     <dt>{{ __('media-library::media.detail.fact_disk') }}</dt>
-                    <dd class="bn-media__mono">{{ $asset->disk }}</dd>
+                    <dd class="ml-library__mono">{{ $asset->disk }}</dd>
 
                     <dt>{{ __('media-library::media.detail.fact_uuid') }}</dt>
-                    <dd class="bn-media__mono">{{ $asset->uuid }}</dd>
+                    <dd class="ml-library__mono">{{ $asset->uuid }}</dd>
                 </dl>
             </x-filament::section>
         </div>
 
         <x-filament::section :heading="__('media-library::media.detail.usage_heading')">
-            <p class="bn-media__usage-count">{{ $this->usageSummary() }}</p>
+            <p class="ml-library__usage-count">{{ $this->usageSummary() }}</p>
 
             @php $usages = $this->usages(); @endphp
 
             @if ($usages === [])
-                <p class="bn-media__empty">{{ __('media-library::media.detail.usage_empty') }}</p>
+                <p class="ml-library__empty">{{ __('media-library::media.detail.usage_empty') }}</p>
             @else
-                <div class="bn-media__table-wrap">
-                    <table class="bn-media__table">
+                <div class="ml-library__table-wrap">
+                    <table class="ml-library__table">
                         <thead>
                             <tr>
                                 <th>{{ __('media-library::media.detail.usage_col_record') }}</th>
@@ -280,8 +280,8 @@
                         </thead>
                         <tbody>
                             @foreach ($usages as $index => $usage)
-                                <tr @class(['bn-media__row--alt' => $index % 2 === 1])>
-                                    <td class="bn-media__mono">
+                                <tr @class(['ml-library__row--alt' => $index % 2 === 1])>
+                                    <td class="ml-library__mono">
                                         @if ($usage->url !== null)
                                             <a href="{{ $usage->url }}">{{ $usage->label }}</a>
                                         @else
@@ -289,7 +289,7 @@
                                         @endif
                                     </td>
                                     <td>{{ $usage->type }}</td>
-                                    <td class="bn-media__mono">{{ $usage->field }}</td>
+                                    <td class="ml-library__mono">{{ $usage->field }}</td>
                                     <td>{{ $usage->locale ?? __('media-library::media.shared_locale') }}</td>
                                 </tr>
                             @endforeach
@@ -300,8 +300,8 @@
         </x-filament::section>
 
         <x-filament::section :heading="__('media-library::media.detail.versions_heading')">
-            <div class="bn-media__table-wrap">
-                <table class="bn-media__table">
+            <div class="ml-library__table-wrap">
+                <table class="ml-library__table">
                     <thead>
                         <tr>
                             <th>{{ __('media-library::media.detail.versions_col_version') }}</th>
@@ -313,17 +313,17 @@
                     </thead>
                     <tbody>
                         @foreach ($this->versions() as $index => $version)
-                            <tr wire:key="version-{{ $version->id }}" @class(['bn-media__row--alt' => $index % 2 === 1])>
+                            <tr wire:key="version-{{ $version->id }}" @class(['ml-library__row--alt' => $index % 2 === 1])>
                                 <td>
                                     {{-- The ordinal an editor talks about ("version 3"), newest first; not the row id. --}}
                                     #{{ $loop->count - $loop->index }}
                                     @if ($version->id === $asset->current_version_id)
-                                        <span class="bn-media__chip">{{ __('media-library::media.detail.versions_current') }}</span>
+                                        <span class="ml-library__chip">{{ __('media-library::media.detail.versions_current') }}</span>
                                     @endif
                                 </td>
                                 <td>{{ $version->width !== null && $version->height !== null ? $version->width.' × '.$version->height : '—' }}</td>
                                 <td>{{ $version->humanSize() }}</td>
-                                <td class="bn-media__mono">{{ $version->shortChecksum() }}</td>
+                                <td class="ml-library__mono">{{ $version->shortChecksum() }}</td>
                                 <td>{{ $version->created_at?->toDayDateTimeString() ?? '—' }}</td>
                             </tr>
                         @endforeach

@@ -152,7 +152,7 @@ Laravel discovers the service provider automatically. `filament:assets` publishe
 
 The migrations create seven tables: `media_assets`, `media_versions`, `media_tags`, `media_asset_tag`, `media_usages`, `media_folders` and `media_folder_members`.
 
-If you upgrade from an earlier release, you only need `php artisan migrate`. Three new migrations add the file-kind, caption and folder columns. None of the old migrations changed.
+One migration creates all seven tables. If you use 0.1, read [UPGRADE.md](UPGRADE.md) before you update.
 
 If you want other table names, or you already have these tables, read [Configuration](#configuration) **before** you run `migrate`.
 
@@ -203,7 +203,7 @@ The picker stores an **id**, not a path or a URL. For a gallery, use a `json` co
 
 ```php
 use Banyan\FilamentMediaLibrary\Forms\MediaPicker;
-use Banyan\FilamentMediaLibrary\Rendering\MediaThumbnailColumn;
+use Banyan\FilamentMediaLibrary\Tables\MediaThumbnailColumn;
 
 // In the form
 MediaPicker::make('hero_id')->label('Hero image')->thumbnails(),
@@ -615,7 +615,7 @@ $asset->downloadUrl();   // always an attachment
 <video controls src="{{ $asset->fileUrl() }}"></video>
 ```
 
-The route is `GET /media/{uuid}/file` (named `media-library.file`). Change both in `delivery.file_route`, and keep `{uuid}`. The route has the `signed` middleware and no session, so it is cacheable. The signature covers the current version and the `download` flag. So nobody can switch a link between inline and attachment by editing it, and a replaced file gets a new address that no cache serves stale. An unsigned or altered request gets `403`. An unknown asset or a missing file gets `404`.
+The route is `GET /media/{uuid}/file` (named `media-library.file`). Change both in `routes.file`, and keep `{uuid}`. The route has the `signed` middleware and no session, so it is cacheable. The signature covers the current version and the `download` flag. So nobody can switch a link between inline and attachment by editing it, and a replaced file gets a new address that no cache serves stale. An unsigned or altered request gets `403`. An unknown asset or a missing file gets `404`.
 
 The response always carries these headers:
 
@@ -738,7 +738,7 @@ $folders->moveAssets([$asset, $other], $reports, (string) $user->id);           
 $folders->delete($y2025, (string) $user->id);                                       // must be empty
 $folders->deleteMovingContentsToParent($reports, (string) $user->id);               // lift, then delete
 
-$media->upload($bytes, 'report.pdf', 'application/pdf', '', (string) $user->id, null, 'Annual report 2025', $reports);
+$media->upload($bytes, 'report.pdf', '', (string) $user->id, null, 'Annual report 2025', $reports);
 ```
 
 | Method | Returns | Throws |
@@ -881,21 +881,21 @@ use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 
 $media = app(MediaGovernanceService::class);
 
-$asset = $media->upload($bytes, 'campus.jpg', 'image/jpeg', 'The campus at dusk', (string) $user->id);
-$report = $media->upload($pdf, 'ar-2025.pdf', 'application/pdf', '', (string) $user->id, null, 'Annual report 2025', $folder);
+$asset = $media->upload($bytes, 'campus.jpg', 'The campus at dusk', (string) $user->id);
+$report = $media->upload($pdf, 'ar-2025.pdf', '', (string) $user->id, null, 'Annual report 2025', $folder);
 $media->updateDetails($asset, 'The campus at dusk, from the north gate', null, (string) $user->id);
 $media->setFocalPoint($asset, 0.7, 0.4, (string) $user->id);
 $media->syncTags($asset, ['campus', 'events'], (string) $user->id);
 $media->setCaptions($video, $vtt, (string) $user->id);
 $media->setTranscript($audio, 'Good morning, and welcome.', (string) $user->id);
-$media->replace($asset, $newBytes, 'campus-2027.jpg', 'image/jpeg', (string) $user->id);
+$media->replace($asset, $newBytes, 'campus-2027.jpg', (string) $user->id);
 $media->delete($asset, (string) $user->id);
 ```
 
 | Method | Returns | Throws |
 | --- | --- | --- |
-| `upload(string $binary, string $filename, string $mimeType, string $altText, string $actorId, ?DateTimeInterface $licenseExpiresAt = null, ?string $title = null, ?MediaFolder $folder = null)` | `MediaAsset` | `AltTextRequired`, `TitleRequired`, `UnreadableImage`, and the [upload guard](#upload-safety) exceptions |
-| `replace(MediaAsset $asset, string $binary, string $filename, string $mimeType, string $actorId)` | `MediaVersion` | `KindMismatch`, `UnreadableImage`, and the upload guard exceptions |
+| `upload(string $binary, string $filename, string $altText, string $actorId, ?DateTimeInterface $licenseExpiresAt = null, ?string $title = null, ?MediaFolder $folder = null)` | `MediaAsset` | `AltTextRequired`, `TitleRequired`, `UnreadableImage`, and the [upload guard](#upload-safety) exceptions |
+| `replace(MediaAsset $asset, string $binary, string $filename, string $actorId)` | `MediaVersion` | `KindMismatch`, `UnreadableImage`, and the upload guard exceptions |
 | `updateDetails(MediaAsset $asset, string $altText, ?DateTimeInterface $licenseExpiresAt, string $actorId, ?string $title = null)` | `void` | `AltTextRequired`, `TitleRequired` |
 | `setCaptions(MediaAsset $video, ?MediaAsset $captions, string $actorId)` | `void` | `CompanionNotAllowed` |
 | `setTranscript(MediaAsset $asset, ?string $transcript, string $actorId)` | `void` | `CompanionNotAllowed` |
@@ -905,7 +905,7 @@ $media->delete($asset, (string) $user->id);
 
 Notes on the arguments:
 
-- `$mimeType` is what the client claimed. The library ignores it, detects the type from the bytes and stores that.
+- The library detects the file type from the bytes and stores that. You do not pass a MIME type.
 - `$altText` is required for an image. For any other kind it may be empty, and you pass `$title` instead.
 - `$folder` files the new asset in a folder. `null` is the library root.
 - `$actorId` is your user's id as a string. It goes into the event.
@@ -1045,7 +1045,7 @@ Query scopes on `MediaAsset`:
 | `Access\FolderAccess` | `canBrowse()`, `canManage()`, `canAdminister()`, `unlock()`, `isUnlocked()`, `isRestricted()`: the one place where folder access is decided ([Folder access](#folder-access)) |
 | `Folders\MediaFolderService` | Every folder write: `create`, `rename`, `move`, `delete`, `moveAssets`, `setAccess`, `addMember`, `removeMember` ([Folders](#folders)) |
 | `Delivery\FileDelivery` | `url($asset, $download)`, `disposition($asset)`, `filename($asset)`: what the file route's addresses and headers are made of |
-| `Rendering\PdfThumbnailService` | `url($asset, $width)` gives a signed first-page thumbnail URL, or `null` when there is none |
+| `Rendering\Pdf\PdfThumbnailService` | `url($asset, $width)` gives a signed first-page thumbnail URL, or `null` when there is none |
 | `Contracts\FileScanner`, `Contracts\PdfThumbnailer` | Bind or name your own ([Upload safety](#upload-safety), [Previews](#previews)) |
 | `Support\MediaConfig` | `table('assets')` and typed config reads |
 
@@ -1105,7 +1105,7 @@ $rows = DB::table('articles as a')
 
 ## Audit log: events
 
-Every change dispatches an event that implements `Banyan\FilamentMediaLibrary\Events\MediaEvent`. It has `name()`, `subjectType()`, `subjectId()`, `actorId()` and `payload()`. An event about one asset also implements `MediaAssetEvent` (with `assetId()`). An event about one folder implements `MediaFolderEvent` (with `folderId()`). `subjectType()` is `media_asset` or `media_folder`.
+Every change dispatches an event that implements `Banyan\FilamentMediaLibrary\Events\MediaEvent`. It has `name()`, `subjectType()`, `subjectId()`, `actorId()` and `payload()`. An event about one asset also implements `MediaAssetEvent` (with `assetId()`). An event about one folder implements `MediaFolderEvent` (with `folderId()`). The classes extend the abstract `AssetEvent` or `FolderEvent`. These hold the public `$assetId` (or `$folderId`) and `$actor`, and each event has a `NAME` constant, for example `AssetUploaded::NAME`. `subjectType()` is `media_asset` or `media_folder`.
 
 | Event class | `name()` | Payload keys |
 | --- | --- | --- |
@@ -1220,18 +1220,18 @@ Publish the config with `php artisan vendor:publish --tag=media-library-config`.
 | `folders.max_depth` | `8` | How deep folders may nest |
 | `folders.unlock_minutes` | `30` | How long an unlocked password folder stays open in a session |
 | `folders.member_label` | `name` | The user attribute shown when choosing a folder's members; falls back to `email` |
-| `route.path` | `media/{uuid}/render` | Rendition route (must keep `{uuid}`) |
-| `route.name` | `media-library.render` | Rendition route name |
-| `delivery.file_route.path` | `media/{uuid}/file` | The signed file route (must keep `{uuid}`) |
-| `delivery.file_route.name` | `media-library.file` | File route name |
+| `routes.render.path` | `media/{uuid}/render` | Rendition route (must keep `{uuid}`) |
+| `routes.render.name` | `media-library.render` | Rendition route name |
+| `routes.file.path` | `media/{uuid}/file` | The signed file route (must keep `{uuid}`) |
+| `routes.file.name` | `media-library.file` | File route name |
+| `routes.restricted_file.path` | `media/{uuid}/restricted-file` | Route for restricted files |
+| `routes.restricted_file.name` | `media-library.restricted-file` | Name of that route |
+| `routes.restricted_render.path` | `media/{uuid}/restricted-render` | Route for renditions and thumbnails of restricted files |
+| `routes.restricted_render.name` | `media-library.restricted-render` | Name of that route |
 | `delivery.temporary_url_minutes` | `5` | How long the temporary URL a remote disk (S3, R2) is redirected to stays valid |
 | `delivery.redirect_to_storage` | `downloads` | `downloads`: redirect downloads to the storage host but stream embeds from this origin (CSP-safe); `always`; `never` |
 | `delivery.restricted_url_minutes` | `10` | How long the address of a file in a restricted folder works |
 | `delivery.restricted_middleware` | `['web']` | Middleware of the restricted routes; they need the visitor's session |
-| `delivery.restricted_file_route.path` | `media/{uuid}/restricted-file` | Route for restricted files |
-| `delivery.restricted_file_route.name` | `media-library.restricted-file` | Name of that route |
-| `delivery.restricted_render_route.path` | `media/{uuid}/restricted-render` | Route for renditions and thumbnails of restricted files |
-| `delivery.restricted_render_route.name` | `media-library.restricted-render` | Name of that route |
 | `navigation.register` | `true` | Add **Media library** to the sidebar |
 | `navigation.group` | `null` | Navigation group: a string or a navigation-group enum |
 | `navigation.sort` | `20` | Sidebar order |
@@ -1248,7 +1248,7 @@ Set `tables.*` to your own names (there are seven now, including `folders` and `
 
 ## Look and feel, dark mode, languages
 
-- **Colours** come from your panel's palette (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`). So the library follows your theme, including dark mode, with no extra work. To fine-tune it, set the `--ml-*` custom properties on `.bn-media`. They are listed at the top of `resources/css/media.css`.
+- **Colours** come from your panel's palette (`--gray-*`, `--primary-*`, `--warning-*`, `--success-*`). So the library follows your theme, including dark mode, with no extra work. To fine-tune it, set the `--ml-*` custom properties on `.ml-library`. They are listed at the top of `resources/css/media.css`.
 - **Languages:** English, Traditional Chinese (`zh-Hant`) and Simplified Chinese (`zh-Hans`). Publish the translations to change the wording:
 
   ```bash
@@ -1264,7 +1264,7 @@ Set `tables.*` to your own names (there are seven now, including `folders` and `
 You can replace either page with a subclass of your own. Do this to change a query, add a header action or use your own view:
 
 ```php
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 
 final class MediaLibrary extends MediaLibraryPage
 {

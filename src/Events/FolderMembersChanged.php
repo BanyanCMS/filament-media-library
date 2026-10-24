@@ -5,39 +5,26 @@ declare(strict_types=1);
 namespace Banyan\FilamentMediaLibrary\Events;
 
 /** A member was added to, re-roled in, or removed from a folder. User ids only, never a name. */
-final readonly class FolderMembersChanged implements MediaFolderEvent
+final readonly class FolderMembersChanged extends FolderEvent
 {
-    use FolderSubject;
+    public const string NAME = 'media.folder.members_changed';
 
     /** @param 'added'|'role_changed'|'removed' $change */
     public function __construct(
-        public int $id,
+        int $folderId,
         public int $userId,
         public string $change,
         public ?string $role,
         public int $membersCount,
-        public string $actor,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.folder.members_changed';
-    }
-
-    public function folderId(): int
-    {
-        return $this->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+        string $actor,
+    ) {
+        parent::__construct($folderId, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'folder_id' => $this->id,
+            'folder_id' => $this->folderId,
             'user_id' => $this->userId,
             'change' => $this->change,
             'role' => $this->role,

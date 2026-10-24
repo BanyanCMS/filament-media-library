@@ -9,35 +9,22 @@ namespace Banyan\FilamentMediaLibrary\Events;
  * `attempts` is how many failures the user has in the current window. The
  * attempted password is never part of the event.
  */
-final readonly class FolderUnlockFailed implements MediaFolderEvent
+final readonly class FolderUnlockFailed extends FolderEvent
 {
-    use FolderSubject;
+    public const string NAME = 'media.folder.unlock_failed';
 
     public function __construct(
-        public int $id,
+        int $folderId,
         public int $attempts,
-        public string $actor,
-    ) {}
-
-    public function name(): string
-    {
-        return 'media.folder.unlock_failed';
-    }
-
-    public function folderId(): int
-    {
-        return $this->id;
-    }
-
-    public function actorId(): string
-    {
-        return $this->actor;
+        string $actor,
+    ) {
+        parent::__construct($folderId, $actor);
     }
 
     public function payload(): array
     {
         return [
-            'folder_id' => $this->id,
+            'folder_id' => $this->folderId,
             'attempts' => $this->attempts,
         ];
     }

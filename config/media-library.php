@@ -80,16 +80,6 @@ return [
     ],
 
     'delivery' => [
-        /*
-         * The signed route every non-image file (and every original) is served
-         * from. `{uuid}` is required. Supports Range requests on local disks;
-         * disks with temporary URLs (S3, R2) are redirected to one.
-         */
-        'file_route' => [
-            'path' => 'media/{uuid}/file',
-            'name' => 'media-library.file',
-        ],
-
         /* How long the temporary URL a remote disk is redirected to stays valid. */
         'temporary_url_minutes' => 5,
 
@@ -104,20 +94,13 @@ return [
         /*
          * Files in members-only and password-protected folders:
          * their addresses expire after this many minutes, are only issued to a
-         * user who may browse the folder, and are served by these routes, which
-         * run the middleware below (they need the visitor's session) and check
-         * access again on every request. The public routes above refuse them.
+         * user who may browse the folder, and are served by the restricted
+         * routes (see `routes`), which run the middleware below (they need the
+         * visitor's session) and check access again on every request. The
+         * public routes refuse them.
          */
         'restricted_url_minutes' => 10,
         'restricted_middleware' => ['web'],
-        'restricted_file_route' => [
-            'path' => 'media/{uuid}/restricted-file',
-            'name' => 'media-library.restricted-file',
-        ],
-        'restricted_render_route' => [
-            'path' => 'media/{uuid}/restricted-render',
-            'name' => 'media-library.restricted-render',
-        ],
     ],
 
     'renditions' => [
@@ -177,10 +160,32 @@ return [
         'member_label' => 'name',
     ],
 
-    /* The signed rendition route every image URL points at. */
-    'route' => [
-        'path' => 'media/{uuid}/render',
-        'name' => 'media-library.render',
+    /*
+     * The delivery routes. `{uuid}` is required in every path.
+     *
+     * `render` is the signed rendition route every image URL points at.
+     * `file` serves every non-image file and every original. It supports
+     * Range requests on local disks, and redirects disks with temporary URLs
+     * (S3, R2) to one. `restricted_file` and `restricted_render` serve files in
+     * members-only and password-protected folders (see `delivery`).
+     */
+    'routes' => [
+        'render' => [
+            'path' => 'media/{uuid}/render',
+            'name' => 'media-library.render',
+        ],
+        'file' => [
+            'path' => 'media/{uuid}/file',
+            'name' => 'media-library.file',
+        ],
+        'restricted_file' => [
+            'path' => 'media/{uuid}/restricted-file',
+            'name' => 'media-library.restricted-file',
+        ],
+        'restricted_render' => [
+            'path' => 'media/{uuid}/restricted-render',
+            'name' => 'media-library.restricted-render',
+        ],
     ],
 
     'navigation' => [

@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Contracts\PdfThumbnailer;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Events\CaptionsChanged;
@@ -13,9 +11,11 @@ use Banyan\FilamentMediaLibrary\Exceptions\CompanionNotAllowed;
 use Banyan\FilamentMediaLibrary\Exceptions\ExtensionMismatch;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
-use Banyan\FilamentMediaLibrary\Rendering\ImagickPdfThumbnailer;
-use Banyan\FilamentMediaLibrary\Rendering\NullPdfThumbnailer;
-use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\ImagickPdfThumbnailer;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\NullPdfThumbnailer;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Tests\Support\FakePdfThumbnailer;
 use Banyan\FilamentMediaLibrary\Tests\Support\Files;
@@ -42,14 +42,14 @@ covers(
 
 function upload(string $binary, string $filename, string $title): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload($binary, $filename, 'application/octet-stream', '', '1', null, $title);
+    return app(MediaGovernanceService::class)->upload($binary, $filename, '', '1', null, $title);
 }
 
 /** The library's own markup: Filament's action-modal host carries a `style` of its own that is not ours. */
 function assetPageHtml(MediaAsset $asset): string
 {
     $html = Livewire::actingAs(User::query()->first() ?? User::make())->test(MediaAssetPage::class, ['asset' => $asset->uuid])->assertOk()->html();
-    $start = (int) strpos($html, 'class="bn-media"');
+    $start = (int) strpos($html, 'class="ml-library"');
     $end = strpos($html, 'wire:partial="action-modals"');
 
     return substr($html, $start, $end === false ? null : $end - $start);
@@ -70,7 +70,7 @@ it('stores the page count of a pdf on upload and again on replacement, and nothi
         ->and($docx->page_count)->toBeNull()
         ->and($pdf->duration_seconds)->toBeNull();
 
-    app(MediaGovernanceService::class)->replace($pdf, Files::pdfWithPages(5), 'five.pdf', 'application/pdf', '1');
+    app(MediaGovernanceService::class)->replace($pdf, Files::pdfWithPages(5), 'five.pdf', '1');
 
     expect($pdf->refresh()->page_count)->toBe(5);
 });
@@ -81,7 +81,7 @@ it('previews a pdf in an accessible iframe with its page count, an open link and
     $html = assetPageHtml($pdf);
 
     expect($html)->toContain('<iframe')
-        ->and($html)->toContain('class="bn-media__pdf"')
+        ->and($html)->toContain('class="ml-library__pdf"')
         ->and($html)->toContain('title="Preview of Annual report 2025"')
         ->and($html)->toContain(e($pdf->fileUrl()))
         ->and($html)->toContain('2 pages')
@@ -137,7 +137,7 @@ it('shows other documents and archives with an icon, kind, size and a download b
 
         $html = assetPageHtml($asset);
 
-        expect($html)->toContain('bn-media__kind-icon')
+        expect($html)->toContain('ml-library__kind-icon')
             ->and($html)->toContain($asset->kind->label())
             ->and($html)->toContain($asset->humanSize())
             ->and($html)->toContain(e($asset->downloadUrl()))
@@ -150,7 +150,7 @@ it('shows other documents and archives with an icon, kind, size and a download b
 it('keeps the image preview and focal point exactly as they were', function (): void {
     $html = assetPageHtml(Images::upload());
 
-    expect($html)->toContain('bn-media__stage')->and($html)->not->toContain('<iframe')->and($html)->not->toContain('<video');
+    expect($html)->toContain('ml-library__stage')->and($html)->not->toContain('<iframe')->and($html)->not->toContain('<video');
 });
 
 it('shows a title and a kind badge on the grid card of a non-image', function (): void {
@@ -159,7 +159,7 @@ it('shows a title and a kind badge on the grid card of a non-image', function ()
     $html = Livewire::actingAs(User::make())->test(MediaLibraryPage::class)->html();
 
     expect($html)->toContain('Annual report 2025')
-        ->and($html)->toContain('bn-media__kind-badge')
+        ->and($html)->toContain('ml-library__kind-badge')
         ->and($html)->toContain('annual.pdf');
 });
 
@@ -171,7 +171,7 @@ it('falls back to the kind icon when no PDF engine is available', function (): v
     $html = Livewire::actingAs(User::make())->test(MediaLibraryPage::class)->html();
 
     expect(app(PdfThumbnailService::class)->url($pdf))->toBeNull()
-        ->and($html)->toContain('bn-media__kind-icon')
+        ->and($html)->toContain('ml-library__kind-icon')
         ->and($html)->not->toContain('/media/'.$pdf->uuid.'/render');
 });
 
@@ -201,7 +201,7 @@ it('serves and caches a PDF thumbnail through the rendition route when an engine
     $html = Livewire::actingAs(User::make())->test(MediaLibraryPage::class)->html();
     $url = app(PdfThumbnailService::class)->url($pdf, 300);
 
-    expect($html)->toContain('bn-media__thumb--page')
+    expect($html)->toContain('ml-library__thumb--page')
         ->and($url)->toContain('w=320');
 
     $first = $this->get((string) $url)->assertOk();

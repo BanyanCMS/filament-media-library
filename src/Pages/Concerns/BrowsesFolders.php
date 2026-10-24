@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Concerns;
+namespace Banyan\FilamentMediaLibrary\Pages\Concerns;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
-use Banyan\FilamentMediaLibrary\Admin\Support\FolderChoices;
-use Banyan\FilamentMediaLibrary\Admin\Support\FolderNode;
 use Banyan\FilamentMediaLibrary\Enums\FolderAccessMode;
+use Banyan\FilamentMediaLibrary\Folders\FolderChoices;
+use Banyan\FilamentMediaLibrary\Folders\FolderNode;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Closure;
 use Filament\Actions\Action;

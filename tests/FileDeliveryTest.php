@@ -19,12 +19,12 @@ covers(FileController::class, FileDelivery::class, MediaAsset::class);
 
 function documentAsset(string $title = 'Annual report 2025', string $filename = 'annual.pdf', ?string $binary = null): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload($binary ?? Files::pdf(), $filename, 'application/pdf', '', '1', null, $title);
+    return app(MediaGovernanceService::class)->upload($binary ?? Files::pdf(), $filename, '', '1', null, $title);
 }
 
 function videoAsset(): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload(Files::mp4().str_repeat('0123456789', 50), 'clip.mp4', 'video/mp4', '', '1', null, 'A clip');
+    return app(MediaGovernanceService::class)->upload(Files::mp4().str_repeat('0123456789', 50), 'clip.mp4', '', '1', null, 'A clip');
 }
 
 /** A disk that is not "local" to the controller, so it takes the remote paths. */
@@ -78,13 +78,13 @@ it('serves video, audio and images inline and every other document as an attachm
     $inline = [
         Images::upload(),
         videoAsset(),
-        $service->upload(Files::mp3(), 'talk.mp3', 'audio/mpeg', '', '1', null, 'A talk'),
+        $service->upload(Files::mp3(), 'talk.mp3', '', '1', null, 'A talk'),
     ];
     $attachment = [
-        $service->upload(Files::csv(), 'data.csv', 'text/csv', '', '1', null, 'Figures'),
-        $service->upload(Files::ooxml('docx'), 'letter.docx', 'application/octet-stream', '', '1', null, 'Letter'),
-        $service->upload(Files::zip(), 'bundle.zip', 'application/zip', '', '1', null, 'Bundle'),
-        $service->upload(Files::text(), 'notes.txt', 'text/plain', '', '1', null, 'Notes'),
+        $service->upload(Files::csv(), 'data.csv', '', '1', null, 'Figures'),
+        $service->upload(Files::ooxml('docx'), 'letter.docx', '', '1', null, 'Letter'),
+        $service->upload(Files::zip(), 'bundle.zip', '', '1', null, 'Bundle'),
+        $service->upload(Files::text(), 'notes.txt', '', '1', null, 'Notes'),
     ];
 
     foreach ($inline as $asset) {
@@ -162,7 +162,7 @@ it('puts the version in the url, so a replacement is a new address', function ()
     $asset = documentAsset();
     $before = $asset->fileUrl();
 
-    app(MediaGovernanceService::class)->replace($asset, Files::pdfWithPages(3), 'annual-v2.pdf', 'application/pdf', '1');
+    app(MediaGovernanceService::class)->replace($asset, Files::pdfWithPages(3), 'annual-v2.pdf', '1');
     $asset->refresh();
 
     expect($asset->fileUrl())->not->toBe($before)

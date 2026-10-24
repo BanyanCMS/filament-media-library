@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
-use Banyan\FilamentMediaLibrary\Admin\Support\FolderChoices;
 use Banyan\FilamentMediaLibrary\Enums\FolderAccessMode;
+use Banyan\FilamentMediaLibrary\Folders\FolderChoices;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Tests\Support\AccessWorld as W;
 use Banyan\FilamentMediaLibrary\Tests\Support\Images;
 use Banyan\FilamentMediaLibrary\Tests\Support\User;

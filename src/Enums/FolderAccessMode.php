@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Enums;
 
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
-
 /**
  * How a folder is protected.
  *
@@ -14,8 +12,6 @@ use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
  */
 enum FolderAccessMode: string
 {
-    use MediaText;
-
     case Inherit = 'inherit';
     case Shared = 'shared';
     case Members = 'members';
@@ -29,7 +25,7 @@ enum FolderAccessMode: string
 
     public function label(): string
     {
-        return self::text('media.access.mode.'.$this->value);
+        return __('media-library::media.access.mode.'.$this->value);
     }
 
     /** @return array<string, string> value => label, for a select */

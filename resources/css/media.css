@@ -1,87 +1,91 @@
 /*
- * Media library and asset detail (bn-media__*).
+ * Media library and asset detail (ml-library__*) and the picker (ml-picker__*).
  *
- * packages/filament-media-library/resources/views/library.blade.php
- * packages/filament-media-library/resources/views/asset.blade.php
+ * resources/views/library.blade.php
+ * resources/views/asset.blade.php
+ * src/Forms/MediaPicker.php
  *
  * Standalone: this file depends on nothing but Filament. Every value is read
- * from a library token (--ml-*) declared on .bn-media below. Each token
- * resolves to the matching Banyan design token (--bn-*) when one exists, so
- * inside Banyan the look is unchanged and follows Banyan's themes, dark and
- * high-contrast modes; otherwise it falls back to Filament's own palette
- * (--gray-*, --primary-*, --warning-*, --success-*), with a .dark variant
- * where the colours differ. Host apps may also set any --ml-* directly.
+ * from a library token (--ml-*) declared on .ml-library below. Each token
+ * falls back to Filament's own palette (--gray-*, --primary-*, --warning-*,
+ * --success-*), with a .dark variant where the colours differ.
+ *
+ * To restyle the library, set any --ml-* token from your own stylesheet. The
+ * defaults sit in :where(), which has no specificity, so a plain
+ * `.ml-library { --ml-surface: ...; }` wins whatever the load order.
  *
  * Hand-authored plain CSS, registered as a Filament asset from this package's
  * own service provider. There is no Node toolchain in this repository on
  * purpose: a Tailwind utility class here would not exist in Filament's
  * compiled CSS and would render as nothing at all. The small primitives the
- * views need (.bn-media__meta / __empty / __chip) are restated here, so no
+ * views need (.ml-library__meta / __empty / __chip) are restated here, so no
  * other package has to supply them.
  */
 
-.bn-media {
+.ml-library {
     /* Only a token scope: `contents` keeps the sections direct children of
        Filament's page content, so its spacing between them still applies. */
     display: contents;
-
-    --ml-text: var(--bn-text, var(--gray-950));
-    --ml-text-muted: var(--bn-text-muted, var(--gray-500));
-    --ml-surface: var(--bn-surface, #fff);
-    --ml-surface-2: var(--bn-surface-2, var(--gray-50));
-    --ml-border: var(--bn-border, var(--gray-200));
-    --ml-border-subtle: var(--bn-border-subtle, var(--gray-100));
-    --ml-border-strong: var(--bn-border-strong, var(--gray-300));
-    --ml-warning: var(--bn-warning, var(--warning-700));
-    --ml-success: var(--bn-success, var(--success-700));
-    --ml-state-expired: var(--bn-state-expired, var(--warning-700));
-    --ml-state-draft: var(--bn-state-draft, var(--gray-500));
-    --ml-focus-ring: var(--bn-focus-ring, var(--primary-600));
-    --ml-focus-grabbed: var(--bn-focus-grabbed, var(--warning-600));
-    --ml-primary-fg: var(--bn-primary-fg, #fff);
-    --ml-font-mono: var(--bn-font-mono, ui-monospace, 'SFMono-Regular', 'Menlo', monospace);
-    --ml-text-lg: var(--bn-text-lg, 1rem);
-    --ml-text-lg-height: var(--bn-text-lg-height, 1.5);
-    --ml-text-base: var(--bn-text-base, 0.875rem);
-    --ml-text-base-height: var(--bn-text-base-height, 1.5);
-    --ml-text-sm: var(--bn-text-sm, 0.75rem);
-    --ml-text-sm-height: var(--bn-text-sm-height, 1.5);
-    --ml-space-1: var(--bn-space-1, 0.25rem);
-    --ml-space-2: var(--bn-space-2, 0.5rem);
-    --ml-space-3: var(--bn-space-3, 0.75rem);
-    --ml-space-4: var(--bn-space-4, 1rem);
-    --ml-space-6: var(--bn-space-6, 1.5rem);
-    --ml-space-8: var(--bn-space-8, 2rem);
-    --ml-radius-card: var(--bn-radius-card, 0.5rem);
-    --ml-radius-input: var(--bn-radius-input, 0.5rem);
-    --ml-control-height: var(--bn-control-height, 2.25rem);
-    --ml-elevation-card: var(--bn-elevation-card, 0 1px 2px 0 rgb(0 0 0 / 0.05));
 }
 
-.dark .bn-media {
-    --ml-text: var(--bn-text, #fff);
-    --ml-text-muted: var(--bn-text-muted, var(--gray-400));
-    --ml-surface: var(--bn-surface, var(--gray-900));
-    --ml-surface-2: var(--bn-surface-2, var(--gray-800));
-    --ml-border: var(--bn-border, var(--gray-700));
-    --ml-border-subtle: var(--bn-border-subtle, var(--gray-800));
-    --ml-border-strong: var(--bn-border-strong, var(--gray-600));
-    --ml-warning: var(--bn-warning, var(--warning-400));
-    --ml-success: var(--bn-success, var(--success-400));
-    --ml-state-expired: var(--bn-state-expired, var(--warning-400));
-    --ml-state-draft: var(--bn-state-draft, var(--gray-400));
-    --ml-focus-ring: var(--bn-focus-ring, var(--primary-500));
+:where(.ml-library) {
+    --ml-text: var(--gray-950);
+    --ml-text-muted: var(--gray-500);
+    --ml-surface: #fff;
+    --ml-surface-2: var(--gray-50);
+    --ml-border: var(--gray-200);
+    --ml-border-subtle: var(--gray-100);
+    --ml-border-strong: var(--gray-300);
+    --ml-warning: var(--warning-700);
+    --ml-success: var(--success-700);
+    --ml-state-expired: var(--warning-700);
+    --ml-state-draft: var(--gray-500);
+    --ml-focus-ring: var(--primary-600);
+    --ml-focus-grabbed: var(--warning-600);
+    --ml-primary-fg: #fff;
+    --ml-font-mono: ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+    --ml-text-lg: 1rem;
+    --ml-text-lg-height: 1.5;
+    --ml-text-base: 0.875rem;
+    --ml-text-base-height: 1.5;
+    --ml-text-sm: 0.75rem;
+    --ml-text-sm-height: 1.5;
+    --ml-space-1: 0.25rem;
+    --ml-space-2: 0.5rem;
+    --ml-space-3: 0.75rem;
+    --ml-space-4: 1rem;
+    --ml-space-6: 1.5rem;
+    --ml-space-8: 2rem;
+    --ml-radius-card: 0.5rem;
+    --ml-radius-input: 0.5rem;
+    --ml-control-height: 2.25rem;
+    --ml-elevation-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+:where(.dark .ml-library) {
+    --ml-text: #fff;
+    --ml-text-muted: var(--gray-400);
+    --ml-surface: var(--gray-900);
+    --ml-surface-2: var(--gray-800);
+    --ml-border: var(--gray-700);
+    --ml-border-subtle: var(--gray-800);
+    --ml-border-strong: var(--gray-600);
+    --ml-warning: var(--warning-400);
+    --ml-success: var(--success-400);
+    --ml-state-expired: var(--warning-400);
+    --ml-state-draft: var(--gray-400);
+    --ml-focus-ring: var(--primary-500);
 }
 
 /* ── Shared primitives (restated, scoped to the library) ─────────────────── */
 
-.bn-media__meta {
+.ml-library__meta {
     font-size: var(--ml-text-sm);
     line-height: var(--ml-text-sm-height);
     color: var(--ml-text-muted);
 }
 
-.bn-media__empty {
+.ml-library__empty {
     display: block;
     padding: var(--ml-space-8) var(--ml-space-4);
     text-align: center;
@@ -90,7 +94,7 @@
     color: var(--ml-text-muted);
 }
 
-.bn-media__chip {
+.ml-library__chip {
     --ml-chip-color: var(--ml-state-draft);
 
     display: inline-flex;
@@ -107,14 +111,14 @@
     white-space: nowrap;
 }
 
-.bn-media__intro {
+.ml-library__intro {
     color: var(--ml-text-muted);
     font-size: var(--ml-text-base);
     line-height: var(--ml-text-base-height);
     margin-bottom: var(--ml-space-4);
 }
 
-.bn-media__expiry-alert {
+.ml-library__expiry-alert {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -127,27 +131,27 @@
     background: color-mix(in oklab, var(--ml-warning) 7%, var(--ml-surface));
 }
 
-.bn-media__expiry-copy {
+.ml-library__expiry-copy {
     min-width: 0;
 }
 
-.bn-media__expiry-title {
+.ml-library__expiry-title {
     display: flex;
     align-items: center;
     gap: var(--ml-space-2);
 }
 
-.bn-media__expiry-copy p {
+.ml-library__expiry-copy p {
     margin: var(--ml-space-1) 0 0;
     color: var(--ml-text);
 }
 
-.bn-media__expiry-critical {
+.ml-library__expiry-critical {
     color: var(--ml-state-expired) !important;
     font-weight: 600;
 }
 
-.bn-media__expiry-actions {
+.ml-library__expiry-actions {
     display: flex;
     flex-wrap: wrap;
     flex: none;
@@ -155,14 +159,14 @@
 }
 
 @media (max-width: 640px) {
-    .bn-media__expiry-alert {
+    .ml-library__expiry-alert {
         flex-direction: column;
     }
 }
 
 /* ── Filters ─────────────────────────────────────────────────────────────── */
 
-.bn-media__filters {
+.ml-library__filters {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
@@ -171,14 +175,14 @@
     border-bottom: 1px solid var(--ml-border-subtle);
 }
 
-.bn-media__filter {
+.ml-library__filter {
     display: flex;
     flex-direction: column;
     gap: var(--ml-space-1);
     min-width: 180px;
 }
 
-.bn-media__filter--check {
+.ml-library__filter--check {
     min-height: 2.25rem;
     flex-direction: row;
     align-items: center;
@@ -188,13 +192,13 @@
     color: var(--ml-text);
 }
 
-.bn-media__filter-label {
+.ml-library__filter-label {
     font-size: var(--ml-text-sm);
     line-height: var(--ml-text-sm-height);
     color: var(--ml-text-muted);
 }
 
-.bn-media__input {
+.ml-library__input {
     height: var(--ml-control-height);
     padding: 0 var(--ml-space-2);
     font-size: var(--ml-text-base);
@@ -204,18 +208,18 @@
     border-radius: var(--ml-radius-input);
 }
 
-.bn-media__input:focus-visible {
+.ml-library__input:focus-visible {
     outline: 2px solid var(--ml-focus-ring);
     outline-offset: 1px;
 }
 
-.bn-media__count {
+.ml-library__count {
     margin: var(--ml-space-4) 0 var(--ml-space-2);
 }
 
 /* ── Grid ────────────────────────────────────────────────────────────────── */
 
-.bn-media__grid {
+.ml-library__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--ml-space-4);
@@ -224,7 +228,7 @@
     list-style: none;
 }
 
-.bn-media__card {
+.ml-library__card {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -235,31 +239,31 @@
     overflow: hidden;
 }
 
-.bn-media__thumb-link {
+.ml-library__thumb-link {
     display: block;
     background-color: var(--ml-surface-2);
 }
 
-.bn-media__thumb-link:focus-visible {
+.ml-library__thumb-link:focus-visible {
     outline: 2px solid var(--ml-focus-ring);
     outline-offset: -2px;
 }
 
-.bn-media__thumb {
+.ml-library__thumb {
     display: block;
     width: 100%;
     height: 140px;
     object-fit: cover;
 }
 
-.bn-media__card-body {
+.ml-library__card-body {
     display: flex;
     flex-direction: column;
     gap: var(--ml-space-1);
     padding: var(--ml-space-3);
 }
 
-.bn-media__filename {
+.ml-library__filename {
     font-size: var(--ml-text-base);
     line-height: var(--ml-text-base-height);
     color: var(--ml-text);
@@ -267,16 +271,16 @@
     word-break: break-all;
 }
 
-.bn-media__filename:hover {
+.ml-library__filename:hover {
     text-decoration: underline;
 }
 
-.bn-media__dims {
+.ml-library__dims {
     font-size: var(--ml-text-sm);
 }
 
-.bn-media__flags,
-.bn-media__tags {
+.ml-library__flags,
+.ml-library__tags {
     display: flex;
     flex-wrap: wrap;
     gap: var(--ml-space-1);
@@ -284,24 +288,24 @@
 }
 
 /* An asset with no alt text is a defect, not a detail. */
-.bn-media__flag--warn {
+.ml-library__flag--warn {
     color: var(--ml-warning);
     border-color: color-mix(in oklab, var(--ml-warning) 40%, var(--ml-border));
     background-color: color-mix(in oklab, var(--ml-warning) 8%, var(--ml-surface));
 }
 
-.bn-media__flag--ok {
+.ml-library__flag--ok {
     color: var(--ml-success);
     font-size: var(--ml-text-sm);
 }
 
-.bn-media__flag--expired {
+.ml-library__flag--expired {
     color: var(--ml-state-expired);
     border-color: color-mix(in oklab, var(--ml-state-expired) 40%, var(--ml-border));
     background-color: color-mix(in oklab, var(--ml-state-expired) 8%, var(--ml-surface));
 }
 
-.bn-media__card-actions {
+.ml-library__card-actions {
     position: absolute;
     top: var(--ml-space-1);
     inset-inline-end: var(--ml-space-1);
@@ -309,7 +313,7 @@
     border-radius: var(--ml-radius-input);
 }
 
-.bn-media__protected {
+.ml-library__protected {
     position: absolute;
     top: var(--ml-space-1);
     inset-inline-end: var(--ml-space-1);
@@ -324,28 +328,28 @@
     border-radius: var(--ml-radius-input);
 }
 
-.bn-media__protected svg {
+.ml-library__protected svg {
     width: 16px;
     height: 16px;
 }
 
 /* ── Detail ──────────────────────────────────────────────────────────────── */
 
-.bn-media__back {
+.ml-library__back {
     font-size: var(--ml-text-base);
 }
 
-.bn-media__back a {
+.ml-library__back a {
     color: var(--ml-text-muted);
     text-decoration: none;
 }
 
-.bn-media__back a:hover {
+.ml-library__back a:hover {
     color: var(--ml-text);
     text-decoration: underline;
 }
 
-.bn-media__banner {
+.ml-library__banner {
     display: flex;
     align-items: center;
     gap: var(--ml-space-3);
@@ -355,20 +359,20 @@
     font-size: var(--ml-text-base);
 }
 
-.bn-media__banner--expired {
+.ml-library__banner--expired {
     color: var(--ml-text);
     border-color: color-mix(in oklab, var(--ml-state-expired) 40%, var(--ml-border));
     background-color: color-mix(in oklab, var(--ml-state-expired) 6%, var(--ml-surface));
 }
 
-.bn-media__banner-icon {
+.ml-library__banner-icon {
     flex: none;
     width: 20px;
     height: 20px;
     color: var(--ml-state-expired);
 }
 
-.bn-media__detail {
+.ml-library__detail {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     gap: var(--ml-space-6);
@@ -376,18 +380,18 @@
 }
 
 @media (max-width: 1024px) {
-    .bn-media__detail {
+    .ml-library__detail {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 
-.bn-media__focal-help {
+.ml-library__focal-help {
     margin-bottom: var(--ml-space-3);
 }
 
 /* ── Focal-point crosshair ───────────────────────────────────────────────── */
 
-.bn-media__stage {
+.ml-library__stage {
     position: relative;
     display: block;
     max-width: 100%;
@@ -399,12 +403,12 @@
     user-select: none;
 }
 
-.bn-media__stage:focus-visible {
+.ml-library__stage:focus-visible {
     outline: 2px solid var(--ml-focus-ring);
     outline-offset: 2px;
 }
 
-.bn-media__preview {
+.ml-library__preview {
     display: block;
     width: 100%;
     height: auto;
@@ -416,7 +420,7 @@
  * a dark suit, and a single colour cannot do that. The white outer stroke and
  * the coloured inner ring guarantee contrast against whatever is beneath.
  */
-.bn-media__crosshair {
+.ml-library__crosshair {
     position: absolute;
     width: 22px;
     height: 22px;
@@ -429,7 +433,7 @@
     pointer-events: none;
 }
 
-.bn-media__crosshair::after {
+.ml-library__crosshair::after {
     content: '';
     position: absolute;
     inset: 7px;
@@ -437,7 +441,7 @@
     border-radius: 50%;
 }
 
-.bn-media__focal-controls {
+.ml-library__focal-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -445,14 +449,14 @@
     margin-top: var(--ml-space-3);
 }
 
-.bn-media__focal-readout {
+.ml-library__focal-readout {
     font-family: var(--ml-font-mono);
     font-size: var(--ml-text-sm);
     color: var(--ml-text-muted);
     margin-inline-end: auto;
 }
 
-.bn-media__crops {
+.ml-library__crops {
     display: flex;
     gap: var(--ml-space-4);
     margin-top: var(--ml-space-4);
@@ -460,14 +464,14 @@
     border-top: 1px solid var(--ml-border-subtle);
 }
 
-.bn-media__crop {
+.ml-library__crop {
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: var(--ml-space-1);
 }
 
-.bn-media__crop img {
+.ml-library__crop img {
     display: block;
     border: 1px solid var(--ml-border);
     border-radius: var(--ml-radius-input);
@@ -475,7 +479,7 @@
 
 /* ── Facts, usage and versions ───────────────────────────────────────────── */
 
-.bn-media__facts {
+.ml-library__facts {
     display: grid;
     grid-template-columns: minmax(0, auto) minmax(0, 1fr);
     gap: var(--ml-space-2) var(--ml-space-4);
@@ -484,66 +488,66 @@
     line-height: var(--ml-text-base-height);
 }
 
-.bn-media__facts dt {
+.ml-library__facts dt {
     color: var(--ml-text-muted);
 }
 
-.bn-media__facts dd {
+.ml-library__facts dd {
     margin: 0;
     color: var(--ml-text);
     word-break: break-word;
 }
 
-.bn-media__mono {
+.ml-library__mono {
     font-family: var(--ml-font-mono);
     font-size: var(--ml-text-sm);
 }
 
-.bn-media__usage-count {
+.ml-library__usage-count {
     font-size: var(--ml-text-lg);
     line-height: var(--ml-text-lg-height);
     color: var(--ml-text);
     margin-bottom: var(--ml-space-3);
 }
 
-.bn-media__table-wrap {
+.ml-library__table-wrap {
     overflow-x: auto;
 }
 
-.bn-media__table {
+.ml-library__table {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--ml-text-base);
     line-height: var(--ml-text-base-height);
 }
 
-.bn-media__table th,
-.bn-media__table td {
+.ml-library__table th,
+.ml-library__table td {
     padding: var(--ml-space-2) var(--ml-space-3);
     text-align: start;
     vertical-align: top;
     border-bottom: 1px solid var(--ml-border-subtle);
 }
 
-.bn-media__table th {
+.ml-library__table th {
     font-size: var(--ml-text-sm);
     line-height: var(--ml-text-sm-height);
     font-weight: 600;
     color: var(--ml-text-muted);
 }
 
-.bn-media__row--alt {
+.ml-library__row--alt {
     background-color: var(--ml-surface-2);
 }
 
 /* MediaPicker options with ->thumbnails(): a 48px crop beside the label. */
-.bn-media-picker__option {
+.ml-picker__option {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.bn-media-picker__thumb {
+.ml-picker__thumb {
     flex: none;
     width: 48px;
     height: 48px;
@@ -552,14 +556,14 @@
 }
 
 /* "Load more" under the grid. */
-.bn-media__more {
+.ml-library__more {
     display: flex;
     justify-content: center;
     margin-top: var(--ml-space-4);
 }
 
 /* A kind icon stands in for the thumbnail of a file that has no pixels to show. */
-.bn-media__kind-icon {
+.ml-library__kind-icon {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -569,17 +573,17 @@
     background: var(--gray-100, #f3f4f6);
 }
 
-.bn-media__kind-icon svg {
+.ml-library__kind-icon svg {
     width: 3rem;
     height: 3rem;
 }
 
-.bn-media__kind-icon--large {
+.ml-library__kind-icon--large {
     min-height: 12rem;
     border-radius: 0.5rem;
 }
 
-.dark .bn-media__kind-icon {
+.dark .ml-library__kind-icon {
     color: var(--gray-400, #9ca3af);
     background: var(--gray-800, #1f2937);
 }
@@ -587,7 +591,7 @@
 /* ── File previews ─────────────────────────────────────────── */
 
 /* Sized here, not with a style attribute: a strict style-src CSP blocks those. */
-.bn-media__pdf {
+.ml-library__pdf {
     display: block;
     width: 100%;
     height: 70vh;
@@ -597,17 +601,17 @@
     background: #fff;
 }
 
-.bn-media__player {
+.ml-library__player {
     display: block;
     width: 100%;
     max-height: 70vh;
 }
 
-audio.bn-media__player {
+audio.ml-library__player {
     max-height: none;
 }
 
-.bn-media__preview-links {
+.ml-library__preview-links {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -615,35 +619,35 @@ audio.bn-media__player {
     margin: 0.75rem 0 0;
 }
 
-.bn-media__link {
+.ml-library__link {
     text-decoration: underline;
 }
 
-.bn-media__transcript {
+.ml-library__transcript {
     margin-top: 1rem;
 }
 
-.bn-media__transcript summary {
+.ml-library__transcript summary {
     cursor: pointer;
     font-weight: 600;
 }
 
-.bn-media__transcript p {
+.ml-library__transcript p {
     margin: 0.5rem 0 0;
     white-space: pre-wrap;
 }
 
-.bn-media__kind-badge {
+.ml-library__kind-badge {
     margin-inline-end: 0.25rem;
 }
 
-.bn-media__subname {
+.ml-library__subname {
     margin: 0;
     font-size: var(--ml-text-sm, 0.75rem);
     word-break: break-all;
 }
 
-.bn-media-picker__icon {
+.ml-picker__icon {
     display: inline-block;
     width: 48px;
     height: 48px;
@@ -654,7 +658,7 @@ audio.bn-media__player {
 
 /* ── Folders ────────────────────────────────────────────────── */
 
-.bn-media__layout {
+.ml-library__layout {
     display: grid;
     grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
     gap: var(--ml-space-6);
@@ -662,32 +666,32 @@ audio.bn-media__player {
 }
 
 @media (max-width: 768px) {
-    .bn-media__layout {
+    .ml-library__layout {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 
-.bn-media__tree,
-.bn-media__tree-group {
+.ml-library__tree,
+.ml-library__tree-group {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.bn-media__tree-group {
+.ml-library__tree-group {
     padding-inline-start: var(--ml-space-4);
 }
 
-.bn-media__tree-row {
+.ml-library__tree-row {
     display: flex;
     align-items: center;
     gap: var(--ml-space-1);
 }
 
-.bn-media__tree-toggle,
-.bn-media__tree-link,
-.bn-media__crumb-link,
-.bn-media__folder-link {
+.ml-library__tree-toggle,
+.ml-library__tree-link,
+.ml-library__crumb-link,
+.ml-library__folder-link {
     font: inherit;
     color: var(--ml-text);
     background: none;
@@ -696,7 +700,7 @@ audio.bn-media__player {
     text-align: start;
 }
 
-.bn-media__tree-toggle {
+.ml-library__tree-toggle {
     display: inline-flex;
     flex: none;
     align-items: center;
@@ -706,18 +710,18 @@ audio.bn-media__player {
     color: var(--ml-text-muted);
 }
 
-.bn-media__tree-toggle svg {
+.ml-library__tree-toggle svg {
     width: 1rem;
     height: 1rem;
 }
 
-.bn-media__tree-spacer {
+.ml-library__tree-spacer {
     display: inline-block;
     flex: none;
     width: 1.5rem;
 }
 
-.bn-media__tree-link {
+.ml-library__tree-link {
     display: flex;
     flex: 1;
     align-items: center;
@@ -729,38 +733,38 @@ audio.bn-media__player {
     line-height: var(--ml-text-base-height);
 }
 
-.bn-media__tree-link svg {
+.ml-library__tree-link svg {
     flex: none;
     width: 1.25rem;
     height: 1.25rem;
     color: var(--ml-text-muted);
 }
 
-.bn-media__tree-link span {
+.ml-library__tree-link span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.bn-media__tree-link:hover {
+.ml-library__tree-link:hover {
     background-color: var(--ml-surface-2);
 }
 
-.bn-media__tree-link.is-current {
+.ml-library__tree-link.is-current {
     font-weight: 600;
     background-color: var(--ml-surface-2);
 }
 
-.bn-media__tree-toggle:focus-visible,
-.bn-media__tree-link:focus-visible,
-.bn-media__crumb-link:focus-visible,
-.bn-media__folder-link:focus-visible,
-.bn-media__select input:focus-visible {
+.ml-library__tree-toggle:focus-visible,
+.ml-library__tree-link:focus-visible,
+.ml-library__crumb-link:focus-visible,
+.ml-library__folder-link:focus-visible,
+.ml-library__select input:focus-visible {
     outline: 2px solid var(--ml-focus-ring);
     outline-offset: 1px;
 }
 
-.bn-media__crumbs {
+.ml-library__crumbs {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -772,26 +776,26 @@ audio.bn-media__player {
 }
 
 /* The separator is decoration, so it is a pseudo-element a screen reader skips. */
-.bn-media__crumbs li + li::before {
+.ml-library__crumbs li + li::before {
     content: '/';
     margin-inline-end: var(--ml-space-1);
     color: var(--ml-text-muted);
 }
 
-.bn-media__crumb-link {
+.ml-library__crumb-link {
     padding: 0 var(--ml-space-1);
     text-decoration: underline;
 }
 
-.bn-media__crumb-current {
+.ml-library__crumb-current {
     font-weight: 600;
 }
 
-.bn-media__folder-card {
+.ml-library__folder-card {
     background-color: var(--ml-surface-2);
 }
 
-.bn-media__folder-link {
+.ml-library__folder-link {
     display: flex;
     flex-direction: column;
     gap: var(--ml-space-1);
@@ -799,30 +803,30 @@ audio.bn-media__player {
     padding: var(--ml-space-4);
 }
 
-.bn-media__folder-link > svg {
+.ml-library__folder-link > svg {
     width: 2.5rem;
     height: 2.5rem;
     color: var(--ml-text-muted);
 }
 
 /* A chip on a tile (Locked, Members only) keeps its own size instead of stretching with the column. */
-.bn-media__folder-link .bn-media__chip {
+.ml-library__folder-link .ml-library__chip {
     align-self: flex-start;
 }
 
-.bn-media__folder-link .bn-media__chip svg {
+.ml-library__folder-link .ml-library__chip svg {
     width: 1rem;
     height: 1rem;
     color: inherit;
 }
 
-.bn-media__folder-name {
+.ml-library__folder-name {
     font-size: var(--ml-text-base);
     line-height: var(--ml-text-base-height);
     word-break: break-word;
 }
 
-.bn-media__select {
+.ml-library__select {
     position: absolute;
     top: var(--ml-space-1);
     inset-inline-start: var(--ml-space-1);
@@ -832,7 +836,7 @@ audio.bn-media__player {
     border-radius: var(--ml-radius-input);
 }
 
-.bn-media__selection {
+.ml-library__selection {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -845,7 +849,7 @@ audio.bn-media__player {
 }
 
 /* Folder access */
-.bn-media__sr {
+.ml-library__sr {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -857,14 +861,14 @@ audio.bn-media__player {
     border: 0;
 }
 
-.bn-media__tree-link svg.bn-media__tree-badge {
+.ml-library__tree-link svg.ml-library__tree-badge {
     width: 1rem;
     height: 1rem;
     margin-inline-start: auto;
     color: var(--ml-text-muted);
 }
 
-.bn-media__locked-panel {
+.ml-library__locked-panel {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -874,7 +878,7 @@ audio.bn-media__player {
     border-radius: 0.5rem;
 }
 
-.bn-media__file-locked {
+.ml-library__file-locked {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;

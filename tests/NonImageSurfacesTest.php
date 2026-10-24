@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
+use Banyan\FilamentMediaLibrary\Forms\MediaForms;
 use Banyan\FilamentMediaLibrary\Forms\MediaPicker;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
-use Banyan\FilamentMediaLibrary\Rendering\MediaThumbnailColumn;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
+use Banyan\FilamentMediaLibrary\Tables\MediaThumbnailColumn;
 use Banyan\FilamentMediaLibrary\Tests\Support\Files;
 use Banyan\FilamentMediaLibrary\Tests\Support\Images;
 use Banyan\FilamentMediaLibrary\Tests\Support\PickerForm;
@@ -27,7 +27,7 @@ beforeEach(function (): void {
 
 function pdfAsset(string $title = 'Annual report 2025'): MediaAsset
 {
-    return app(MediaGovernanceService::class)->upload(Files::pdf(), 'annual.pdf', 'application/pdf', '', '1', null, $title);
+    return app(MediaGovernanceService::class)->upload(Files::pdf(), 'annual.pdf', '', '1', null, $title);
 }
 
 it('shows a non-image in the grid with a kind icon and its title, not a broken thumbnail', function (): void {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Banyan\FilamentMediaLibrary\Tests\Support;
 
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 
 final class CustomLibraryPage extends MediaLibraryPage
 {

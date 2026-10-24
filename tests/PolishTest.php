@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Events\AssetReplaced;
 use Banyan\FilamentMediaLibrary\Events\AssetUploaded;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Storage\MediaRepository;
 use Banyan\FilamentMediaLibrary\Tests\Support\Images;
@@ -73,7 +73,7 @@ it('does not offer Delete on the asset page while the asset is used', function (
 
 it('numbers versions as an editor counts them and shows readable sizes', function (): void {
     $asset = Images::upload();
-    app(MediaGovernanceService::class)->replace($asset, Images::splitPng(800, 400), 'bigger.png', 'image/png', '1');
+    app(MediaGovernanceService::class)->replace($asset, Images::splitPng(800, 400), 'bigger.png', '1');
 
     $html = Livewire::actingAs(User::make())->test(MediaAssetPage::class, ['asset' => $asset->uuid])->html();
 
@@ -93,7 +93,7 @@ it('keeps the old file when a replacement is rolled back', function (): void {
     $before = Storage::disk('media-lib-test')->allFiles();
     Event::listen(AssetReplaced::class, static fn () => throw new RuntimeException('refused'));
 
-    expect(fn () => app(MediaGovernanceService::class)->replace($asset, Images::splitPng(), 'new.png', 'image/png', '1'))
+    expect(fn () => app(MediaGovernanceService::class)->replace($asset, Images::splitPng(), 'new.png', '1'))
         ->toThrow(RuntimeException::class);
 
     expect(Storage::disk('media-lib-test')->allFiles())->toBe($before);
@@ -109,7 +109,7 @@ it('keeps an asset on the disk it was uploaded to after the default disk changes
     app()->forgetInstance(RenditionService::class);
     app()->forgetInstance(MediaGovernanceService::class);
 
-    app(MediaGovernanceService::class)->replace($asset, Images::splitPng(), 'again.png', 'image/png', '1');
+    app(MediaGovernanceService::class)->replace($asset, Images::splitPng(), 'again.png', '1');
     $asset->refresh();
 
     expect($asset->disk)->toBe('media-lib-test')

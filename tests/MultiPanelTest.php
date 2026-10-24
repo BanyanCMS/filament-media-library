@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\MediaAssetPage;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Forms\MediaPicker;
 use Banyan\FilamentMediaLibrary\MediaLibraryPlugin;
+use Banyan\FilamentMediaLibrary\Pages\MediaAssetPage;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Tests\Support\CustomAssetPage;
 use Banyan\FilamentMediaLibrary\Tests\Support\CustomLibraryPage;
 use Banyan\FilamentMediaLibrary\Tests\Support\Images;

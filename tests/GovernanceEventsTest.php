@@ -54,7 +54,7 @@ it('names every change with a stable event and never puts alt text or a filename
     $service = app(MediaGovernanceService::class);
 
     $asset = Images::upload('Jane Doe at the podium');
-    $service->replace($asset, Images::splitPng(), 'cv-jane-doe.png', 'image/png', '1');
+    $service->replace($asset, Images::splitPng(), 'cv-jane-doe.png', '1');
     $service->updateDetails($asset->refresh(), 'Jane Doe, smiling', new DateTimeImmutable('2030-01-01T00:00:00+00:00'), '1');
     $service->setFocalPoint($asset, 0.25, 0.75, '1');
     $service->syncTags($asset, ['Campus', 'events'], '1');

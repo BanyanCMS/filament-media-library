@@ -303,7 +303,7 @@ it('uploads into a folder and says so in the event', function (): void {
     $a = folders()->create(null, 'A', '1');
     $events = captureMediaEvents();
 
-    $asset = app(MediaGovernanceService::class)->upload(Images::splitPng(), 'split.png', 'image/png', 'Alt', '1', null, null, $a);
+    $asset = app(MediaGovernanceService::class)->upload(Images::splitPng(), 'split.png', 'Alt', '1', null, null, $a);
 
     expect($asset->folder_id)->toBe($a->id)
         ->and($asset->folder->is($a))->toBeTrue()

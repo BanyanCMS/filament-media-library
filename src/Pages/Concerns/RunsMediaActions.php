@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Concerns;
+namespace Banyan\FilamentMediaLibrary\Pages\Concerns;
 
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;

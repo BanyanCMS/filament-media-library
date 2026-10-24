@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
+use Banyan\FilamentMediaLibrary\Forms\MediaForms;
 use Banyan\FilamentMediaLibrary\Forms\MediaPicker;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
@@ -31,10 +31,10 @@ function everyKind(): array
 
     return [
         'image' => Images::upload('A picture'),
-        'document' => $service->upload(Files::pdf(), 'annual.pdf', 'application/pdf', '', '1', null, 'Annual report'),
-        'video' => $service->upload(Files::mp4(), 'clip.mp4', 'video/mp4', '', '1', null, 'Welcome film'),
-        'audio' => $service->upload(Files::mp3(), 'talk.mp3', 'audio/mpeg', '', '1', null, 'The talk'),
-        'archive' => $service->upload(Files::zip(), 'bundle.zip', 'application/zip', '', '1', null, 'Bundle'),
+        'document' => $service->upload(Files::pdf(), 'annual.pdf', '', '1', null, 'Annual report'),
+        'video' => $service->upload(Files::mp4(), 'clip.mp4', '', '1', null, 'Welcome film'),
+        'audio' => $service->upload(Files::mp3(), 'talk.mp3', '', '1', null, 'The talk'),
+        'archive' => $service->upload(Files::zip(), 'bundle.zip', '', '1', null, 'Bundle'),
     ];
 }
 
@@ -116,7 +116,7 @@ it('searches documents by title, and shows their kind icon beside the label when
     $field = pickerKindsField(kindPicker(['document', 'image'], thumbnails: true));
     $options = $field->getOptions();
 
-    expect($options[$assets['document']->id])->toContain('<svg')->toContain('bn-media-picker__icon')->toContain('Annual report')->not->toContain('<img')->not->toContain('style=')
+    expect($options[$assets['document']->id])->toContain('<svg')->toContain('ml-picker__icon')->toContain('Annual report')->not->toContain('<img')->not->toContain('style=')
         ->and($options[$assets['image']->id])->toContain('<img')->toContain('w=48');
 });
 

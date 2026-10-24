@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Concerns;
+namespace Banyan\FilamentMediaLibrary\Pages\Concerns;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
-use Banyan\FilamentMediaLibrary\Admin\Support\FolderChoices;
+use Banyan\FilamentMediaLibrary\Folders\FolderChoices;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;

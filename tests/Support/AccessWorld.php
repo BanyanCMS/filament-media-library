@@ -43,7 +43,7 @@ final class AccessWorld
     /** An image whose filename is `$name.png`, filed in `$folder` (the root when null). */
     public static function asset(string $name, ?MediaFolder $folder = null): MediaAsset
     {
-        $asset = app(MediaGovernanceService::class)->upload(Images::splitPng(), $name.'.png', 'image/png', 'Alt for '.$name, '1');
+        $asset = app(MediaGovernanceService::class)->upload(Images::splitPng(), $name.'.png', 'Alt for '.$name, '1');
 
         if ($folder instanceof MediaFolder) {
             app(MediaFolderService::class)->moveAssets([$asset], $folder, '1');

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Concerns;
+namespace Banyan\FilamentMediaLibrary\Pages\Concerns;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
-use Banyan\FilamentMediaLibrary\Admin\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Enums\FolderAccessMode;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Models\MediaFolderMember;
+use Banyan\FilamentMediaLibrary\Pages\MediaLibraryPage;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;

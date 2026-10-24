@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Support;
+namespace Banyan\FilamentMediaLibrary\Forms;
 
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Support\MediaKinds;
+use Banyan\FilamentMediaLibrary\Support\MediaText;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Filament\Forms\Components\DateTimePicker;
@@ -141,7 +142,6 @@ final class MediaForms
         $asset = $service->upload(
             self::contents($file),
             $file->getClientOriginalName(),
-            self::mimeType($file),
             is_scalar($altText) ? (string) $altText : '',
             $actorId,
             self::expiry($data['license_expires_at'] ?? null),
@@ -159,18 +159,12 @@ final class MediaForms
     /** Put the file from a replace form on the asset as a new version. */
     public static function storeReplacement(MediaAsset $asset, UploadedFile $file, string $actorId): void
     {
-        app(MediaGovernanceService::class)->replace($asset, self::contents($file), $file->getClientOriginalName(), self::mimeType($file), $actorId);
+        app(MediaGovernanceService::class)->replace($asset, self::contents($file), $file->getClientOriginalName(), $actorId);
     }
 
     private static function contents(UploadedFile $file): string
     {
         return (string) file_get_contents($file->getRealPath());
-    }
-
-    /** The type the browser reported; the upload guard works out the real one from the bytes. */
-    private static function mimeType(UploadedFile $file): string
-    {
-        return (string) ($file->getMimeType() ?? 'application/octet-stream');
     }
 
     /** @param  bool|\Closure(Get): bool  $required */

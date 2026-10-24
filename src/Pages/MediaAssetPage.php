@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin;
+namespace Banyan\FilamentMediaLibrary\Pages;
 
 use BackedEnum;
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\GuardsRestrictedMoves;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
-use Banyan\FilamentMediaLibrary\Admin\Support\FolderChoices;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
+use Banyan\FilamentMediaLibrary\Folders\FolderChoices;
 use Banyan\FilamentMediaLibrary\Folders\MediaFolderService;
+use Banyan\FilamentMediaLibrary\Forms\MediaForms;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\MediaLibraryPlugin;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
 use Banyan\FilamentMediaLibrary\Models\MediaVersion;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\GuardsRestrictedMoves;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\RunsMediaActions;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+use Banyan\FilamentMediaLibrary\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Usage\AssetUsage;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;

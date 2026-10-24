@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin\Concerns;
+namespace Banyan\FilamentMediaLibrary\Pages\Concerns;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;

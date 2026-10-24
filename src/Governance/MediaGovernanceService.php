@@ -60,7 +60,6 @@ final readonly class MediaGovernanceService
     public function upload(
         string $binary,
         string $filename,
-        string $mimeType,
         string $altText,
         string $actorId,
         ?DateTimeInterface $licenseExpiresAt = null,
@@ -68,12 +67,11 @@ final readonly class MediaGovernanceService
         ?MediaFolder $folder = null,
     ): MediaAsset {
         return $this->connection->transaction(function () use (
-            $binary, $filename, $mimeType, $altText, $actorId, $licenseExpiresAt, $title, $folder
+            $binary, $filename, $altText, $actorId, $licenseExpiresAt, $title, $folder
         ): MediaAsset {
             $asset = $this->media->store(
                 $binary,
                 $filename,
-                $mimeType,
                 $altText,
                 is_numeric($actorId) ? (int) $actorId : null,
                 $licenseExpiresAt,
@@ -92,17 +90,15 @@ final readonly class MediaGovernanceService
         MediaAsset $asset,
         string $binary,
         string $filename,
-        string $mimeType,
         string $actorId,
     ): MediaVersion {
-        return $this->connection->transaction(function () use ($asset, $binary, $filename, $mimeType, $actorId): MediaVersion {
+        return $this->connection->transaction(function () use ($asset, $binary, $filename, $actorId): MediaVersion {
             $supersededId = $asset->current_version_id;
 
             $version = $this->media->replace(
                 $asset,
                 $binary,
                 $filename,
-                $mimeType,
                 is_numeric($actorId) ? (int) $actorId : null,
             );
 
@@ -191,7 +187,7 @@ final readonly class MediaGovernanceService
     {
         $assetId = $asset->id;
         $uuid = $asset->uuid;
-        $kind = $asset->kind->value;
+        $kind = $asset->kind;
         $folderId = $asset->folder_id;
 
         $this->connection->transaction(function () use ($asset, $assetId, $uuid, $kind, $folderId, $actorId): void {

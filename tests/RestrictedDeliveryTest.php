@@ -12,8 +12,8 @@ use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\Http\RestrictedFileController;
 use Banyan\FilamentMediaLibrary\Http\RestrictedRenditionController;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
-use Banyan\FilamentMediaLibrary\Rendering\MediaThumbnailColumn;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
+use Banyan\FilamentMediaLibrary\Tables\MediaThumbnailColumn;
 use Banyan\FilamentMediaLibrary\Tests\Support\AccessWorld as W;
 use Banyan\FilamentMediaLibrary\Tests\Support\Files;
 use Illuminate\Support\Facades\Blade;
@@ -28,7 +28,7 @@ function restrictedPdf(string $title = 'Payroll run'): array
     $member = W::user('Member');
     $folder = W::restricted('Payroll', FolderAccessMode::Members, $owner);
     W::member($folder, $member);
-    $asset = app(MediaGovernanceService::class)->upload(Files::pdf(), 'payroll.pdf', 'application/pdf', '', '1', null, $title);
+    $asset = app(MediaGovernanceService::class)->upload(Files::pdf(), 'payroll.pdf', '', '1', null, $title);
     app(MediaFolderService::class)->moveAssets([$asset], $folder, '1');
 
     return [$asset->refresh(), $member, $folder, $owner];
@@ -46,7 +46,7 @@ function queryOf(string $url, string $key): ?string
 it('keeps a shared file on a permanent signed address that anyone can open, without a session', function (): void {
     $asset = W::asset('plain');
     $url = $asset->url(200);
-    $pdf = app(MediaGovernanceService::class)->upload(Files::pdf(), 'open.pdf', 'application/pdf', '', '1', null, 'Open report');
+    $pdf = app(MediaGovernanceService::class)->upload(Files::pdf(), 'open.pdf', '', '1', null, 'Open report');
 
     expect($url)->toContain('/render')->not->toContain('expires=')->not->toContain('restricted')
         ->and($pdf->fileUrl())->not->toContain('expires=')->not->toContain('restricted');
@@ -184,7 +184,7 @@ it('refuses a restricted file on the public route, even with a valid permanent s
 });
 
 it('closes an old permanent address when the file is moved into a restricted folder', function (): void {
-    $pdf = app(MediaGovernanceService::class)->upload(Files::pdf(), 'was-public.pdf', 'application/pdf', '', '1', null, 'Was public');
+    $pdf = app(MediaGovernanceService::class)->upload(Files::pdf(), 'was-public.pdf', '', '1', null, 'Was public');
     $image = W::asset('was-public-image');
     $old = [$pdf->fileUrl(), $image->url(100)];
 
@@ -285,7 +285,7 @@ it('renders a placeholder, with no address or name, for a restricted file the vi
     foreach ([$asset, $image] as $denied) {
         $html = $view($denied);
 
-        expect($html)->toContain('bn-media__file-locked')
+        expect($html)->toContain('ml-library__file-locked')
             ->not->toContain('Secret payroll title')->not->toContain('secret-image-name')->not->toContain($denied->uuid)->not->toContain('href=')->not->toContain('src=');
     }
 
@@ -311,7 +311,7 @@ it('gives the thumbnail column nothing for a restricted image it may not show', 
 
 it('leaves a restricted caption file out of a public video\'s markup', function (): void {
     [$caption, $member, $folder] = restrictedPdf();
-    $video = app(MediaGovernanceService::class)->upload(Files::mp4().str_repeat('0123456789', 50), 'clip.mp4', 'video/mp4', '', '1', null, 'A clip');
+    $video = app(MediaGovernanceService::class)->upload(Files::mp4().str_repeat('0123456789', 50), 'clip.mp4', '', '1', null, 'A clip');
     $caption->forceFill(['mime_type' => 'text/vtt'])->save();
     $video->forceFill(['captions_asset_id' => $caption->id])->save();
 

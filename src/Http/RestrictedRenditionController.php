@@ -6,7 +6,7 @@ namespace Banyan\FilamentMediaLibrary\Http;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
-use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;

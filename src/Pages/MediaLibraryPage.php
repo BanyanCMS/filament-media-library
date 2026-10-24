@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Banyan\FilamentMediaLibrary\Admin;
+namespace Banyan\FilamentMediaLibrary\Pages;
 
 use BackedEnum;
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\BrowsesFolders;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\GuardsRestrictedMoves;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\ManagesFolderAccess;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\ManagesFolders;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Contracts\UsageResolver;
+use Banyan\FilamentMediaLibrary\Forms\MediaForms;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpiryReport;
 use Banyan\FilamentMediaLibrary\Governance\MediaExpirySummary;
 use Banyan\FilamentMediaLibrary\Governance\MediaGovernanceService;
 use Banyan\FilamentMediaLibrary\MediaLibraryPlugin;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaTag;
-use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\BrowsesFolders;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\GuardsRestrictedMoves;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\ManagesFolderAccess;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\ManagesFolders;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\RunsMediaActions;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+use Banyan\FilamentMediaLibrary\Support\MediaText;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Pages\Page;

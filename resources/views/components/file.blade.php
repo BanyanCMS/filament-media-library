@@ -20,7 +20,7 @@
     that something is withheld. A signed-in user who may browse the folder gets the file.
 --}}
 @if ($asset instanceof \Banyan\FilamentMediaLibrary\Models\MediaAsset && ! $asset->isDeliverable())
-    <span class="bn-media__file-locked" role="img" aria-label="{{ __('media-library::media.access.restricted_file') }}">
+    <span class="ml-library__file-locked" role="img" aria-label="{{ __('media-library::media.access.restricted_file') }}">
         <x-filament::icon icon="heroicon-o-lock-closed" aria-hidden="true" />
     </span>
 @elseif ($asset instanceof \Banyan\FilamentMediaLibrary\Models\MediaAsset)
@@ -66,7 +66,7 @@
     @endif
 
     @if (in_array($kind, [\Banyan\FilamentMediaLibrary\Enums\MediaKind::Video, \Banyan\FilamentMediaLibrary\Enums\MediaKind::Audio], true) && filled($asset->transcript))
-        <details class="bn-media__transcript">
+        <details class="ml-library__transcript">
             <summary>{{ __('media-library::media.preview.transcript') }}</summary>
             <p>{{ $asset->transcript }}</p>
         </details>

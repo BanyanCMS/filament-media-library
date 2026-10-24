@@ -122,7 +122,7 @@ it('renders escaped thumbnails with the asset alt text when asked', function ():
         ->and($label)->toContain('alt="A &quot;quoted&quot; &lt;b&gt;name&lt;/b&gt;"')
         ->and($label)->toContain('w=48')
         ->and($label)->toContain('signature=')
-        ->and($label)->toContain('class="bn-media-picker__thumb"')
+        ->and($label)->toContain('class="ml-picker__thumb"')
         ->and($label)->not->toContain('style=')
         ->and($label)->not->toContain('<b>');
 });

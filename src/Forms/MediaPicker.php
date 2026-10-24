@@ -6,16 +6,15 @@ namespace Banyan\FilamentMediaLibrary\Forms;
 
 use Banyan\FilamentMediaLibrary\Access\FolderAccess;
 use Banyan\FilamentMediaLibrary\Access\MediaLibraryGate;
-use Banyan\FilamentMediaLibrary\Admin\Concerns\RunsMediaActions;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaForms;
-use Banyan\FilamentMediaLibrary\Admin\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Enums\MediaKind;
 use Banyan\FilamentMediaLibrary\Models\MediaAsset;
 use Banyan\FilamentMediaLibrary\Models\MediaFolder;
-use Banyan\FilamentMediaLibrary\Rendering\PdfThumbnailService;
+use Banyan\FilamentMediaLibrary\Pages\Concerns\RunsMediaActions;
+use Banyan\FilamentMediaLibrary\Rendering\Pdf\PdfThumbnailService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionService;
 use Banyan\FilamentMediaLibrary\Rendering\RenditionSpec;
 use Banyan\FilamentMediaLibrary\Support\MediaConfig;
+use Banyan\FilamentMediaLibrary\Support\MediaText;
 use Banyan\FilamentMediaLibrary\Uploads\FileTypes;
 use Closure;
 use Filament\Actions\Action;
@@ -376,7 +375,7 @@ final class MediaPicker extends Select
         // A plain string, not an HtmlString: Livewire serialises an HtmlString object to JSON and the
         // select would render "[object Object]". allowHtml() is what lets the string through as markup.
         return sprintf(
-            '<span class="bn-media-picker__option">%s<span>%s</span></span>',
+            '<span class="ml-picker__option">%s<span>%s</span></span>',
             $this->thumbnailMarkup($asset),
             e($text),
         );
@@ -427,12 +426,12 @@ final class MediaPicker extends Select
             : app(PdfThumbnailService::class)->url($asset, 160);
 
         if ($src === null) {
-            return svg($asset->kind->icon(), 'bn-media-picker__icon', ['aria-hidden' => 'true'])->toHtml();
+            return svg($asset->kind->icon(), 'ml-picker__icon', ['aria-hidden' => 'true'])->toHtml();
         }
 
         // The image's own alt text; a non-image's thumbnail is decorative, its name is in the label.
         return sprintf(
-            '<img class="bn-media-picker__thumb" src="%s" alt="%s" width="48" height="48" loading="lazy">',
+            '<img class="ml-picker__thumb" src="%s" alt="%s" width="48" height="48" loading="lazy">',
             e($src),
             e($asset->isImage() ? (string) $asset->alt_text : ''),
         );
